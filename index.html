@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruderpositions-Visualisierer — DRV-Trimmhandbuch</title>
+<meta name="description" content="Trimm-Visualisierer für Ruderboote nach DRV-Trimmhandbuch — Ruderriege Mark Essen 1904">
+<meta name="theme-color" content="#0a120c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rudertrimm">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    /* Vereinsfarbe Grün (Ruderriege Mark Essen 1904) */
+    --bg:#0a120c; --panel:#101a13; --panel2:#17281c; --card:#122017;
+    --line:#22392a; --line2:#2a463366;
+    --fg:#e7efe8; --fg-dim:#89a090; --fg-mut:#5c7364;
+    --accent:#2e8b3d; --accent2:#67c77e;
+    --wood:#c9925a; --blade:#e8b04b; --water:#0d2622; --waterline:#43b98f;
+    --ok:#4fd07a; --warn:#f0a92e; --bad:#f8514d;
+    --hull:#2b4638; --body:#9db0a4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--fg); font:14px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif}
+  .layout{display:grid; grid-template-columns:300px 1fr; min-height:100vh}
+  @media(max-width:1000px){.layout{grid-template-columns:1fr}}
+
+  aside{background:var(--panel); border-right:1px solid var(--line); padding:18px 16px 30px; display:flex; flex-direction:column; gap:14px}
+  .brand{display:flex; gap:10px; align-items:center; margin-bottom:4px}
+  .brand h1{font-size:15px; font-weight:750; letter-spacing:.04em; line-height:1.15; text-transform:uppercase}
+  .brand small{display:block; color:var(--fg-dim); font-weight:400; text-transform:none; letter-spacing:0; font-size:11.5px}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px}
+  .slab{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin:2px 0 6px}
+  .slab.grp{margin-top:14px; border-top:1px solid var(--line); padding-top:10px}
+  select{width:100%; background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; cursor:pointer}
+  .seg{display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; margin-top:10px}
+  .seg button{flex:1; border:0; background:transparent; color:var(--fg-dim); padding:8px; font-size:12.5px; font-weight:650; letter-spacing:.06em; cursor:pointer; text-transform:uppercase}
+  .seg button.on{background:var(--accent); color:#03192e}
+  button.play{width:100%; margin-top:10px; background:var(--accent); border:0; color:#03192e; font-weight:700; letter-spacing:.05em; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; text-transform:uppercase}
+  button.play.on{background:var(--warn); color:#241800}
+  .speed{display:flex; align-items:center; gap:8px; margin-top:10px; font-size:11px; color:var(--fg-dim)}
+  .speed b{color:var(--fg); font-variant-numeric:tabular-nums; min-width:42px; text-align:right}
+  input[type=range]{width:100%; accent-color:var(--accent); height:18px}
+  .ctl{margin:10px 0 0}
+  .ctl .lab{display:flex; justify-content:space-between; align-items:baseline; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-dim)}
+  .ctl .lab .val{color:var(--fg); font-size:13.5px; font-weight:650; font-variant-numeric:tabular-nums; text-transform:none; letter-spacing:0}
+  .ctl .mm{display:flex; justify-content:space-between; font-size:10px; color:var(--fg-mut); margin-top:-3px}
+  .ctl .hint{font-size:10.5px; color:var(--fg-mut); margin-top:1px}
+  .filebtns{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+  .filebtns button{background:var(--panel2); border:1px solid var(--line); color:var(--fg-dim); border-radius:8px; padding:9px 2px 7px; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px}
+  .filebtns button:hover{color:var(--fg); border-color:var(--accent)}
+  .filebtns svg{width:15px; height:15px}
+
+  main{padding:16px 18px 34px; overflow-x:hidden; display:flex; flex-direction:column; gap:14px}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:10px}
+  .scard{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; text-align:center}
+  .scard .ico{display:flex; align-items:center; justify-content:center; gap:6px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:4px}
+  .scard .ico svg{width:15px;height:15px; flex:none}
+  .scard .big{font-size:22px; font-weight:750; font-variant-numeric:tabular-nums; line-height:1.1}
+  .scard .st{font-size:11px; margin-top:2px; font-weight:600}
+  .scard .rng{font-size:10.5px; color:var(--fg-mut); margin-top:1px}
+  .scard.ok .st{color:var(--ok)} .scard.warn .st{color:var(--warn)} .scard.bad .st{color:var(--bad)}
+  .chips{display:flex; flex-wrap:wrap; gap:6px}
+  .chip{display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:3px 10px 3px 8px; font-size:11.5px; color:var(--fg-dim)}
+  .chip .dot{width:8px; height:8px; border-radius:50%}
+  .chip b{color:var(--fg); font-variant-numeric:tabular-nums; font-weight:600}
+  .chip.ok .dot{background:var(--ok)} .chip.warn .dot{background:var(--warn)} .chip.bad .dot{background:var(--bad)}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; position:relative}
+  .card h2{font-size:12.5px; font-weight:750; letter-spacing:.08em; text-transform:uppercase}
+  /* Einklappbare Karten: Klick auf die Überschrift */
+  .card[data-fold] h2{cursor:pointer; user-select:none; -webkit-user-select:none; padding-right:26px}
+  .card[data-fold] h2::after{content:'▾'; position:absolute; right:14px; top:12px; color:var(--fg-dim); font-size:13px; transition:transform .15s}
+  .card.closed h2::after{transform:rotate(-90deg)}
+  .card.closed{padding-bottom:12px}
+  .card.closed > :not(h2){display:none}
+  .card.closed h2 small{opacity:.55}
+  .card h2 small{display:block; color:var(--fg-dim); font-weight:400; letter-spacing:0; text-transform:none; font-size:11.5px; margin-top:1px}
+  .duo{display:grid; grid-template-columns:2fr 3fr; gap:14px}
+  @media(max-width:1250px){.duo{grid-template-columns:1fr}}
+  #vTop svg, #vCross svg, #vSide svg{display:block; width:100%; height:auto}
+  svg text{font:11px -apple-system,"Segoe UI",Roboto,sans-serif; fill:var(--fg-dim)}
+  svg .cap{font-size:10px; letter-spacing:.09em; text-transform:uppercase}
+  svg .big{font-size:14px; font-weight:700; fill:var(--fg)}
+  .sideinfo{position:absolute; top:12px; right:14px; text-align:right; background:#0d1626cc; border:1px solid var(--line); border-radius:10px; padding:8px 12px; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px)}
+  .sideinfo .ph{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--fg-dim)}
+  .sideinfo .phv{font-size:15px; font-weight:750; color:var(--accent2); margin-bottom:5px}
+  .sideinfo table{border-collapse:collapse; margin-left:auto}
+  .sideinfo td{font-size:11px; padding:1px 0 1px 14px; color:var(--fg-dim); text-align:right; white-space:nowrap}
+  .sideinfo td.v{color:var(--fg); font-weight:650; font-variant-numeric:tabular-nums}
+
+  /* ---- Ruderer-Sektion ---- */
+  .rowergrid{display:grid; grid-template-columns:230px 1fr; gap:16px; margin-top:8px}
+  @media(max-width:820px){.rowergrid{grid-template-columns:1fr}}
+  .vitruv-wrap{background:#0a1322; border:1px solid var(--line); border-radius:10px; padding:6px; display:flex; align-items:center; justify-content:center}
+  .vitruv-wrap svg{width:100%; height:auto}
+  .seattabs{display:flex; gap:8px; margin-bottom:10px}
+  .seattabs button{flex:1; background:var(--card); border:1px solid var(--line); color:var(--fg-dim); border-radius:8px; padding:8px 6px; font-size:12px; font-weight:650; cursor:pointer; display:flex; flex-direction:column; gap:2px; align-items:center}
+  .seattabs button .sub{font-weight:400; font-size:10px; letter-spacing:.04em}
+  .seattabs button.on{border-color:var(--accent); color:var(--fg)}
+  .seattabs button.s1.on{border-color:#dbe4ee; box-shadow:inset 0 0 0 1px #dbe4ee55}
+  .seattabs button.s2.on{border-color:var(--accent2); box-shadow:inset 0 0 0 1px var(--accent2)}
+  .namerow{display:flex; gap:8px; margin-bottom:8px; align-items:stretch}
+  .namerow input{flex:1; background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:13px}
+  .bmi{display:flex; align-items:center; gap:5px; white-space:nowrap; font-size:12px; font-weight:650; padding:0 11px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); font-variant-numeric:tabular-nums}
+  .bmi b{font-size:14px}
+  .bmi.lo{color:#63b3ff; border-color:#2e5578} .bmi.ok{color:var(--ok); border-color:#2b6b3f}
+  .bmi.hi{color:var(--warn); border-color:#5c4a1d} .bmi.vhi{color:var(--bad); border-color:#6b2d2b}
+  .stepper{display:flex; align-items:center; gap:2px; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+  .stepper button{background:var(--panel2); color:var(--fg); border:0; padding:0 10px; font-size:13px; cursor:pointer; align-self:stretch}
+  .stepper button:hover{background:var(--accent); color:#03192e}
+  .stepper span{font-size:11px; color:var(--fg-dim); padding:0 8px; min-width:96px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  #rowerControls{display:grid; grid-template-columns:1fr 1fr; gap:2px 16px}
+  @media(max-width:560px){#rowerControls{grid-template-columns:1fr}}
+  .dbrow{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; border-top:1px solid var(--line); padding-top:10px}
+  .dbrow select{flex:1; min-width:150px}
+  .dbrow button{background:var(--panel2); color:var(--fg-dim); border:1px solid var(--line); border-radius:7px; padding:6px 10px; font-size:11.5px; cursor:pointer}
+  .dbrow button:hover{color:var(--fg); border-color:var(--accent)}
+  .vitruv-seg{cursor:ns-resize}
+
+  .phases{display:grid; grid-template-columns:repeat(6,1fr); gap:8px}
+  .phase{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:7px 8px; cursor:pointer; display:flex; align-items:center; gap:8px; color:var(--fg-dim)}
+  .phase:hover{border-color:var(--accent)}
+  .phase.on{border-color:var(--accent); background:var(--panel2); color:var(--fg)}
+  .phase .n{width:20px; height:20px; border-radius:50%; background:var(--panel2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex:none}
+  .phase.on .n{background:var(--accent); color:#03192e; border-color:var(--accent)}
+  .phase .t{font-size:10px; letter-spacing:.07em; text-transform:uppercase; line-height:1.2}
+  .foot{font-size:11px; color:var(--fg-mut); max-width:1000px}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside>
+  <div class="brand">
+    <svg width="52" height="52" viewBox="0 0 200 200" aria-label="Ruderriege Mark Essen 1904">
+      <defs>
+        <path id="rmeTop" d="M 100,100 m -74,0 a 74,74 0 1 1 148,0" fill="none"/>
+        <path id="rmeBot" d="M 100,100 m 66,0 a 66,66 0 0 1 -132,0" fill="none"/>
+      </defs>
+      <circle cx="100" cy="100" r="96" fill="#fff" stroke="#12220f" stroke-width="3"/>
+      <circle cx="100" cy="100" r="78" fill="none" stroke="#12220f" stroke-width="2.5"/>
+      <!-- gekreuzte Riemen -->
+      <g stroke="#12220f" stroke-width="7" stroke-linecap="round">
+        <line x1="26" y1="182" x2="172" y2="30"/>
+        <line x1="174" y1="182" x2="28" y2="30"/>
+      </g>
+      <g fill="#2e7d32" stroke="#12220f" stroke-width="2">
+        <path d="M18,20 l24,-6 6,26 -22,10 z"/>
+        <path d="M182,20 l-24,-6 -6,26 22,10 z"/>
+      </g>
+      <g fill="#fff"><circle cx="34" cy="26" r="6"/><circle cx="166" cy="26" r="6"/></g>
+      <g fill="#2e7d32">
+        <path d="M31,26 l3,-4 3,4 4,-3 -3,3 3,3 -4,-3 -3,4 -3,-4 -4,3 3,-3 -3,-3 z"/>
+        <path d="M163,26 l3,-4 3,4 4,-3 -3,3 3,3 -4,-3 -3,4 -3,-4 -4,3 3,-3 -3,-3 z"/>
+      </g>
+      <!-- Ringtext -->
+      <text font-size="21" font-weight="800" letter-spacing="2" fill="#12220f" font-family="Arial,sans-serif">
+        <textPath href="#rmeTop" startOffset="50%" text-anchor="middle">RUDERRIEGE · MARK · ESSEN</textPath>
+      </text>
+      <text font-size="21" font-weight="800" letter-spacing="4" fill="#12220f" font-family="Arial,sans-serif">
+        <textPath href="#rmeBot" startOffset="50%" text-anchor="middle">1904</textPath>
+      </text>
+      <!-- Wimpel mit Kreuz + Medaillon -->
+      <line x1="66" y1="70" x2="66" y2="150" stroke="#12220f" stroke-width="4" stroke-linecap="round"/>
+      <path d="M66,74 L150,100 L66,126 Z" fill="#fff" stroke="#12220f" stroke-width="2.5"/>
+      <path d="M66,100 H150 M100,80 V120" stroke="#2e7d32" stroke-width="8"/>
+      <circle cx="100" cy="100" r="15" fill="#fff" stroke="#12220f" stroke-width="2"/>
+      <path d="M100,90 l3,-5 3,5 5,-3 -3,3 5,3 -5,0 0,5 -3,-3 -3,3 0,-5 -5,0 5,-3 -5,-3 5,3 z" fill="#2e7d32" transform="translate(-4,-4) scale(1.15)"/>
+    </svg>
+    <h1>Ruderpositions<br>Visualisierer<small>Ruderriege Mark Essen 1904</small></h1>
+  </div>
+
+  <div class="box">
+    <div class="slab">Bootsklasse</div>
+    <select id="preset">
+      <optgroup label="DRV / Nolte (Norm)">
+        <option value="1x">1x — Einer</option>
+        <option value="2x">2x — Doppelzweier</option>
+        <option value="4x">4x — Doppelvierer</option>
+        <option value="2-">2- — Zweier o. Stm.</option>
+        <option value="4-">4- — Vierer o. Stm.</option>
+        <option value="8+">8+ — Achter</option>
+        <option value="gigS">Gig (Skull, Norm)</option>
+        <option value="gigR">Gig (Riemen, Norm)</option>
+      </optgroup>
+      <optgroup label="WM 2017 Survey (Elite-Median)">
+        <option value="wmM1x">M1x — Einer Männer</option>
+        <option value="wmW1x">W1x — Einer Frauen</option>
+        <option value="wmM2x">M2x — Doppelzweier M</option>
+        <option value="wmW2x">W2x — Doppelzweier F</option>
+        <option value="wmM4x">M4x — Doppelvierer M</option>
+        <option value="wmW4x">W4x — Doppelvierer F</option>
+        <option value="wmM2-">M2- — Zweier M</option>
+        <option value="wmW2-">W2- — Zweier F</option>
+        <option value="wmM4-">M4- — Vierer M</option>
+        <option value="wmW4-">W4- — Vierer F</option>
+        <option value="wmM8+">M8+ — Achter M</option>
+        <option value="wmW8+">W8+ — Achter F</option>
+      </optgroup>
+    </select>
+    <div class="slab" style="margin-top:10px">Ruder / Blatt</div>
+    <select id="blade">
+      <option value="big">Big-Blade</option>
+      <option value="mac">Macon</option>
+    </select>
+    <div class="seg">
+      <button id="rigS">Skull</button>
+      <button id="rigR">Riemen</button>
+    </div>
+    <div id="sideWrap" style="display:none">
+      <div class="slab" style="margin-top:10px">Schlagmann-Seite <span style="text-transform:none;letter-spacing:0">(Ruderer 2 gegenüber)</span></div>
+      <div class="seg">
+        <button id="sideB">Backbord</button>
+        <button id="sideS">Steuerbord</button>
+      </div>
+    </div>
+    <div class="slab" style="margin-top:10px">Messkontext</div>
+    <div class="seg">
+      <button id="modeW">Werkstatt (Böcke)</button>
+      <button id="modeX">Wasser (Steg)</button>
+    </div>
+    <div id="refWrap">
+      <div class="slab" style="margin-top:10px">Dollenhöhen-Referenz</div>
+      <div class="seg">
+        <button id="refSitz">Rollsitz</button>
+        <button id="refSchiene">Schiene</button>
+      </div>
+      <div class="ctl" style="margin-top:6px">
+        <div class="lab"><span>Sitz-Tiefpunkt über Schiene</span><span class="val" id="v_seatOffset"></span></div>
+        <input type="range" id="in_seatOffset" min="3" max="8" step="0.25" value="5">
+        <div class="mm"><span>3</span><span>8</span></div>
+      </div>
+    </div>
+    <div class="slab" style="margin-top:10px">Boots-Datenbank <span style="text-transform:none;letter-spacing:0">— alle Einstellungen</span></div>
+    <div class="namerow" style="margin-bottom:6px"><input id="boatName" type="text" placeholder="Bootsname (z. B. Kirchboot)" autocomplete="off"></div>
+    <div class="dbrow" style="margin-top:0;border-top:0;padding-top:0">
+      <select id="boatSelect"><option value="">— gespeichertes Boot laden —</option></select>
+      <button id="boatSaveAs">＋ Speichern</button>
+      <button id="boatUpdate">Überschreiben</button>
+      <button id="boatDelete">Löschen</button>
+      <button id="boatExport">Export ⭳</button>
+      <button id="boatImport">Import ⭱</button>
+      <input id="boatFile" type="file" accept="application/json" hidden>
+    </div>
+    <button class="play" id="play">▶ Durchzug starten</button>
+    <div class="speed">Animationstempo
+      <input type="range" id="speed" min="0.25" max="2" step="0.25" value="1" style="flex:1">
+      <b id="speedV">1.00×</b>
+    </div>
+  </div>
+
+  <div class="box" id="controls"></div>
+
+  <div class="filebtns">
+    <button id="bSave"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2h9l3 3v9H2z"/><path d="M5 2v4h5V2M5 14v-5h6v5"/></svg><span>Speichern</span></button>
+    <button id="bLoad"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2v8m0 0 3-3m-3 3L5 7"/><path d="M2 11v3h12v-3"/></svg><span>Laden</span></button>
+    <button id="bExport"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 10V2m0 0L5 5m3-3 3 3"/><path d="M2 11v3h12v-3"/></svg><span>Export</span></button>
+    <button id="bReset"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2v3h-3"/></svg><span>Zurücksetzen</span></button>
+  </div>
+</aside>
+
+<main>
+  <div class="cards" id="cards"></div>
+  <div class="chips" id="chips"></div>
+
+  <div class="card rowersec" data-fold="rower">
+    <h2>Ruderer &amp; Mannschaft <small>Körpermaße · Vergleich Schlagmann ↔ Ruderer 2 · Profil-Datenbank</small></h2>
+    <div class="rowergrid">
+      <div class="vitruv-wrap"><div id="vitruv"></div></div>
+      <div class="roweredit">
+        <div class="seattabs" id="seattabs"></div>
+        <div class="namerow">
+          <input id="rowerName" type="text" placeholder="Name des Ruderers" autocomplete="off">
+          <span class="bmi" id="bmiBadge" title="Body-Mass-Index">BMI –</span>
+          <div class="stepper" id="stepper">
+            <button id="rPrev" title="Vorheriges Profil aus Datenbank">◀</button>
+            <span id="stepLbl">Datenbank</span>
+            <button id="rNext" title="Nächstes Profil aus Datenbank">▶</button>
+          </div>
+        </div>
+        <div id="rowerControls"></div>
+        <div class="slab" style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">Ruderer-Datenbank <span style="text-transform:none;letter-spacing:0">— einmal anlegen, immer wieder laden</span></div>
+        <div class="dbrow">
+          <select id="dbSelect"><option value="">— gespeicherten Ruderer laden —</option></select>
+          <button id="dbSaveAs" title="Aktuellen Ruderer unter seinem Namen neu speichern">＋ Speichern</button>
+          <button id="dbUpdate" title="Gewählten Datenbank-Eintrag überschreiben">Überschreiben</button>
+          <button id="dbDelete">Löschen</button>
+          <button id="dbExport">Export ⭳</button>
+          <button id="dbImport">Import ⭱</button>
+          <input id="dbFile" type="file" accept="application/json" hidden>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-fold="top">
+    <h2>Draufsicht <small>x-y-Ebene · Schlagbogen &amp; Zugbereich · Außenhebel verkürzt dargestellt, Winkel maßstabsgetreu</small></h2>
+    <div id="vTop"></div>
+  </div>
+
+  <div class="card" data-fold="side">
+    <h2>Seitenansicht <small>Rollbahn, Stemmbrett &amp; Körperposition · zwei Ruderer im Boot (außer Einer)</small></h2>
+    <div class="sideinfo">
+      <div class="ph">Phase <span id="phN"></span></div>
+      <div class="phv" id="phName"></div>
+      <table id="bodyTab"></table>
+    </div>
+    <div id="vSide"></div>
+  </div>
+
+  <div class="card" data-fold="cross"><h2>Querschnitt <small>Dollenhöhe &amp; Wasserlinie · bearbeiteter Ruderer</small></h2><div id="vCross" style="max-width:600px;margin:0 auto"></div></div>
+
+  <div class="phases" id="phases"></div>
+
+  <p class="foot">
+    Richtwerte: Übergriff Skull 18–23 cm / Riemen 30–34 cm · Auslagewinkel Weltklasse Skull 65–75° zur Orthogonalen · Schlagweite 110° (Skull) / 90° (Riemen),
+    ~60 % vor der Orthogonalstellung · Dollenhöhe über Wasser 22–26 cm · Anlage Norm 4° zum Heck (±4°) · Außenneigung max. ~2° ·
+    Innenhebel-Faustformel: Riemen = DA + 30 cm, Skull = DA/2 + 8 cm · Stemmbrett richtig, wenn bei 90°-Ruderstellung Kniewinkel ≈ 165° ·
+    Arme in der Auslage ~6° zur Horizontalen · 1 kg Mannschaftsgewicht ≙ 1 mm Eintauchtiefe. Alle Maße als Ausgangspunkt — auf dem Wasser erproben.
+    <br>Nach DRV-Trimmhandbuch (Ellerbrake/Filter · Nolte · v. Lingelsheim · Piesik). Übergriff, Dollenhöhe über Wasser, Knie- und Armwinkel sind abgeleitete Größen.
+    Körperhaltung: geometrisch konsistentes Modell (Hand am Griff, Fuß am Stemmbrett, Sitz auf der Rollbahn), Bewegungsfolge Beine → Rumpf → Arme; Kraftpfeil rein schematisch.
+  </p>
+</main>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const rad = d => d*Math.PI/180;
+const deg = r => r*180/Math.PI;
+const lerp = (a,b,t) => a+(b-a)*t;
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const smooth = x => { x=clamp(x,0,1); return x*x*(3-2*x); };
+const fmt = (v,dec=1) => v.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:dec});
+
+/* ---------------- Presets (Nolte / v. Lingelsheim) ---------------- */
+const PRESETS = {
+  '1x':  {rig:'skull',  DA:159, IH:88,   Lbig:288, Lmac:298, a:15},
+  '2x':  {rig:'skull',  DA:159, IH:88,   Lbig:288, Lmac:300, a:15},
+  '4x':  {rig:'skull',  DA:158, IH:87,   Lbig:289, Lmac:300, a:15},
+  '2-':  {rig:'riemen', DA:85,  IH:115,  Lbig:374, Lmac:383, a:17},
+  '4-':  {rig:'riemen', DA:84,  IH:114,  Lbig:375, Lmac:382, a:17},
+  '8+':  {rig:'riemen', DA:83,  IH:113.5,Lbig:375, Lmac:384, a:17},
+  'gigS':{rig:'skull',  DA:160, IH:88,   Lbig:289, Lmac:298, a:15},
+  'gigR':{rig:'riemen', DA:84,  IH:114,  Lbig:375, Lmac:384, a:17},
+  // WM 2017 Rigging Survey (FISA, Sarasota) — Mediane je Klasse; siehe ANALYSE_WM2017.md
+  'wmM1x':{rig:'skull',  DA:160,   IH:88.5, Lbig:288.5, Lmac:298, a:16, fa:46.5, single:true},
+  'wmW1x':{rig:'skull',  DA:160,   IH:88,   Lbig:286.5, Lmac:296, a:16, fa:46.5, single:true},
+  'wmM2x':{rig:'skull',  DA:159,   IH:88.5, Lbig:289,   Lmac:299, a:16, fa:46.5},
+  'wmW2x':{rig:'skull',  DA:159.5, IH:87.5, Lbig:287.5, Lmac:297, a:16, fa:46.5},
+  'wmM4x':{rig:'skull',  DA:159,   IH:88,   Lbig:289.5, Lmac:299, a:16, fa:46.5},
+  'wmW4x':{rig:'skull',  DA:159,   IH:88,   Lbig:288,   Lmac:298, a:16, fa:46.5},
+  'wmM2-':{rig:'riemen', DA:86,    IH:116,  Lbig:375.5, Lmac:384, a:17},
+  'wmW2-':{rig:'riemen', DA:86.5,  IH:116,  Lbig:373,   Lmac:382, a:17},
+  'wmM4-':{rig:'riemen', DA:85,    IH:115,  Lbig:376,   Lmac:385, a:17},
+  'wmW4-':{rig:'riemen', DA:85,    IH:115.5,Lbig:373,   Lmac:382, a:17},
+  'wmM8+':{rig:'riemen', DA:83.5,  IH:114,  Lbig:377,   Lmac:386, a:17},
+  'wmW8+':{rig:'riemen', DA:84,    IH:114,  Lbig:373,   Lmac:382, a:17},
+};
+PRESETS['1x'].single=true;
+const PHI = { skull:{A:66,R:44}, riemen:{A:54,R:36} };
+
+/* Ruderer-/Platz-Profil: Körpermaße UND das Rigg seines Platzes im Boot.
+   Die Regler in der Seitenleiste wirken immer auf den gewählten Platz —
+   Handbuch 4.1: Plätze dürfen abweichen (kürzere Ruder, kleinerer DA/IH …). */
+function mkRower(name,o={}){ return Object.assign({
+  name, legLen:90, torsoLen:95, wingspan:188, SB:40, weight:80,
+  stemmX:48,                                    // Fa (Skull-Kalibrierung: Knie ≈ 165°)
+  DA:159, IH:88, L:288, d:2, handGap:18,        // Hebel des Platzes
+  a:15, anlage:4, aussen:0, dBB:0.5,            // Dollenhöhe/-neigung; Δ BB−StB (Skull)
+  stemmW:42, rollL:75, rueh:5,                  // Stemmbrett/Rollbahn (42° = WM-2017-Median)
+},o); }
+
+const state = {
+  rig:'skull', strokeSide:1,   // Riemen: +1 = Schlagmann Steuerbord, −1 = Backbord
+  phiA:66, phiR:44, t:0, recovery:false,   // Schlagbogen bootsweit (Handbuch 4.1: gleiche Ruderwinkel)
+  c:8, kg:0,                    // Rollsitz über WL & Mannschaftsgewicht = Bootsebene
+  mode:'werkstatt',             // 'werkstatt' (Boot auf Böcken) | 'wasser' (Steg-Kontrolle)
+  heightRef:'sitz',             // Dollenhöhen-Referenz: 'sitz' (Rollsitz-Tiefpunkt) | 'schiene'
+  seatOffset:5,                 // Rollsitz-Tiefpunkt über Schienenoberkante (cm)
+  crew:{ s1:mkRower('Schlagmann'), s2:mkRower('Ruderer 2',{legLen:84, torsoLen:90, wingspan:176, SB:38, weight:72}) },
+  editSeat:'s1',            // welcher Ruderer/Platz wird gerade bearbeitet
+  db:[], dbIdx:-1,          // Ruderer-Datenbank; Index beim Durchschalten von s2
+  boats:[],                 // Boots-Datenbank (komplette Einstellungen)
+};
+const ROWER_KEYS=['legLen','torsoLen','wingspan','SB','weight','stemmX',
+  'DA','IH','L','d','handGap','a','anlage','aussen','dBB','stemmW','rollL','rueh'];
+const activeRower = ()=> state.crew[state.editSeat];
+const isRowerKey = k => ROWER_KEYS.includes(k);
+const getVal = k => isRowerKey(k)? activeRower()[k] : state[k];
+const setVal = (k,v)=>{ if(isRowerKey(k)) activeRower()[k]=v; else state[k]=v; };
+
+/* ---------------- Controls ---------------- */
+const CTLS = [
+  {hdr:'Hebel & Ruder · gewählter Platz'},
+  {k:'DA',   lab:'Dollenabstand DA', unit:'cm', step:.5, hint:{skull:'Stift–Stift', riemen:'Bootsmitte–Stift'}},
+  {k:'IH',   lab:'Innenhebel IH', unit:'cm', step:.5, hint:{skull:'Faustformel: DA/2 + 8 cm', riemen:'Faustformel: DA + 30 cm'}},
+  {k:'L',    lab:'Ruderlänge L', unit:'cm', step:.5},
+  {k:'d',    lab:'d · Stift→Klemmring', unit:'cm', min:1, max:3, step:.25},
+  {k:'handGap', lab:'Handabstand am Griff', unit:'cm', min:14, max:22, step:.5, hint:{both:'nur Riemen (~2 Handbreit)'}},
+  {hdr:'Höhen & Anlage · gewählter Platz'},
+  {k:'a',    lab:'Dollenhöhe über Rollsitz', unit:'cm', min:11, max:21, step:.5, hint:{both:'Referenz Schiene = Wert + Sitz-Offset'}},
+  {k:'dBB', lab:'Δ Dollenhöhe BB−StB', unit:'cm', min:-2, max:3, step:.25, hint:{skull:'Ziel +0,5–1 cm (Backbord höher)', riemen:'nur Skull — Riemen: Vergleich über die Plätze'}},
+  {k:'anlage', lab:'Dollen-Neigung (z. Heck)', unit:'°', min:0, max:8, step:.5, hint:{both:'Norm 4° · Big-Blades eher weniger'}},
+  {k:'aussen', lab:'Außenneigung Dollenstift', unit:'°', min:0, max:3, step:.25},
+  {hdr:'Rollbahn & Stemmbrett · gewählter Platz'},
+  {k:'stemmX', lab:'Stemmbrett längs (Fa)', unit:'cm', min:26, max:56, step:.5, hint:{both:'Ferse → Dollenanlage · ~30 cm Verschiebeweg · Neigung bleibt · auf Knie ≈ 165° bei 90° trimmen'}},
+  {k:'stemmW', lab:'Stemmbrett-Neigung', unit:'°', min:36, max:48, step:.5, hint:{both:'Norm 45° zum Kiel, −3° · unabhängig von der Längsposition'}},
+  {k:'rollL',  lab:'Rollbahnlänge', unit:'cm', min:68, max:80, step:.5},
+  {k:'rueh',   lab:'Rollbahn-Überstand h. Dollenanlage', unit:'cm', min:-5, max:12, step:.5},
+  {hdr:'Schlagbogen & Boot · gemeinsam'},
+  {k:'phiA', lab:'Auslagewinkel (z. Orthog.)', unit:'°', min:40, max:85, step:.5, hint:{both:'Handbuch 4.1: gleiche Ruderwinkel für alle'}},
+  {k:'phiR', lab:'Rücklagewinkel', unit:'°', min:20, max:60, step:.5},
+  {k:'t',    lab:'Durchzug', unit:'%', min:0, max:100, step:1},
+  {k:'c',    lab:'Rollsitz über Wasserlinie', unit:'cm', min:5, max:10, step:.5},
+  {k:'kg',   lab:'Gewicht vs. Auslegung', unit:'kg', min:-20, max:20, step:1, hint:{both:'1 kg ≙ 1 mm Eintauchtiefe'}},
+];
+// Ruderer-Sektion (eigenes Panel) — konkrete Körpermaße; stemmX ist pro Ruderer
+const ROWER_CTLS = [
+  {k:'legLen', lab:'Beinlänge', unit:'cm', min:70, max:105, step:1, hint:{both:'Sohle → Hüftgelenk'}},
+  {k:'torsoLen', lab:'Rumpflänge', unit:'cm', min:75, max:110, step:1, hint:{both:'Sitzhöhe: Sitz → Scheitel'}},
+  {k:'wingspan', lab:'Spannweite', unit:'cm', min:150, max:215, step:1, hint:{both:'Mittelfinger → Mittelfinger'}},
+  {k:'SB',   lab:'Schulterbreite', unit:'cm', min:32, max:48, step:1, hint:{both:'Schulter → Schulter'}},
+  {k:'weight', lab:'Körpergewicht', unit:'kg', min:45, max:120, step:1},
+];
+const RANGES = {
+  skull:  {DA:[150,168], IH:[82,94],  L:[265,306]},
+  riemen: {DA:[78,92],   IH:[106,122],L:[355,392]},
+};
+
+function buildInto(list, hostId){
+  const host=$(hostId); host.innerHTML='';
+  for(const c of list){
+    if(c.hdr){ const h=document.createElement('div');
+      h.className='slab'+(host.children.length?' grp':''); h.textContent=c.hdr;
+      host.appendChild(h); continue; }
+    const r=RANGES[state.rig][c.k];
+    const min=r?r[0]:c.min, max=r?r[1]:c.max;
+    const hint=c.hint?(c.hint.both||c.hint[state.rig]||''):'';
+    const div=document.createElement('div'); div.className='ctl';
+    div.innerHTML=`<div class="lab"><span>${c.lab}</span><span class="val" id="v_${c.k}"></span></div>
+      <input type="range" id="in_${c.k}" min="${min}" max="${max}" step="${c.step}" value="${getVal(c.k)}">
+      <div class="mm"><span>${fmt(min)}</span><span>${fmt(max)}</span></div>
+      ${hint?`<div class="hint">${hint}</div>`:''}`;
+    host.appendChild(div);
+    div.querySelector('input').addEventListener('input',e=>{
+      setVal(c.k,parseFloat(e.target.value));
+      if(c.k==='t') state.recovery=false;
+      render();
+    });
+    c._unit=c.unit;
+  }
+}
+function buildControls(){ buildInto(CTLS,'controls'); buildInto(ROWER_CTLS,'rowerControls'); }
+function syncControls(){
+  for(const c of [...CTLS,...ROWER_CTLS]){
+    if(c.hdr) continue;
+    const inp=$('in_'+c.k); if(!inp) continue;
+    inp.value=getVal(c.k);
+    $('v_'+c.k).textContent=fmt(getVal(c.k))+' '+c._unit;
+  }
+}
+
+/* ---------------- Preset / rig ---------------- */
+function applyPreset(){
+  const p=PRESETS[$('preset').value];
+  state.rig=p.rig;
+  state.phiA=PHI[p.rig].A; state.phiR=PHI[p.rig].R;
+  const fa0 = p.fa ?? (p.rig==='skull' ? 48 : 38);   // Fa-Startwert (auf Knie ≈ 165° kalibriert); per Slider fein
+  // Preset = Boots-Grundeinstellung → auf BEIDE Plätze; danach pro Platz frei abweichen (Handbuch 4.1)
+  for(const seat of ['s1','s2']){
+    const r=state.crew[seat];
+    r.DA=p.DA; r.IH=p.IH; r.L=$('blade').value==='big'?p.Lbig:p.Lmac;
+    r.a=p.a; r.stemmX=fa0;
+  }
+  state.t=0; state.recovery=false;
+  buildControls(); updateRig(); render();
+}
+function setRig(rig){
+  if(state.rig===rig) return;
+  $('preset').value = rig==='skull'?'1x':'4-';
+  applyPreset();
+}
+function updateRig(){
+  $('rigS').classList.toggle('on',state.rig==='skull');
+  $('rigR').classList.toggle('on',state.rig==='riemen');
+  $('sideWrap').style.display = state.rig==='riemen' ? '' : 'none';
+  $('sideB').classList.toggle('on',state.strokeSide===-1);
+  $('sideS').classList.toggle('on',state.strokeSide===1);
+}
+$('preset').addEventListener('change',applyPreset);
+$('blade').addEventListener('change',applyPreset);
+$('rigS').addEventListener('click',()=>setRig('skull'));
+$('rigR').addEventListener('click',()=>setRig('riemen'));
+$('sideB').addEventListener('click',()=>{ state.strokeSide=-1; updateRig(); render(); });
+$('sideS').addEventListener('click',()=>{ state.strokeSide=1; updateRig(); render(); });
+
+/* ---- Messkontext (Werkstatt/Wasser) & Dollenhöhen-Referenz ---- */
+function updateMode(){
+  $('modeW').classList.toggle('on',state.mode==='werkstatt');
+  $('modeX').classList.toggle('on',state.mode==='wasser');
+  $('refWrap').style.display = state.mode==='werkstatt' ? '' : 'none';
+  $('refSitz').classList.toggle('on',state.heightRef==='sitz');
+  $('refSchiene').classList.toggle('on',state.heightRef==='schiene');
+  $('in_seatOffset').value=state.seatOffset;
+  $('v_seatOffset').textContent=fmt(state.seatOffset)+' cm';
+}
+$('modeW').addEventListener('click',()=>{ state.mode='werkstatt'; updateMode(); render(); });
+$('modeX').addEventListener('click',()=>{ state.mode='wasser'; updateMode(); render(); });
+$('refSitz').addEventListener('click',()=>{ state.heightRef='sitz'; updateMode(); render(); });
+$('refSchiene').addEventListener('click',()=>{ state.heightRef='schiene'; updateMode(); render(); });
+$('in_seatOffset').addEventListener('input',e=>{ state.seatOffset=parseFloat(e.target.value); updateMode(); render(); });
+
+/* ---- Boots-Datenbank: komplette Boots-Einstellung benannt speichern ---- */
+const BOAT_RIG_KEYS=['DA','IH','L','d','handGap','a','anlage','aussen','dBB','stemmW','rollL','rueh'];
+function boatOf(){
+  const pick=r=>BOAT_RIG_KEYS.reduce((o,k)=>(o[k]=r[k],o),{});
+  return { name:$('boatName').value.trim()||'Boot', preset:$('preset').value, blade:$('blade').value,
+    rig:state.rig, strokeSide:state.strokeSide, phiA:state.phiA, phiR:state.phiR,
+    c:state.c, seatOffset:state.seatOffset,
+    s1:pick(state.crew.s1), s2:pick(state.crew.s2) };
+}
+function applyBoat(b){
+  $('preset').value=b.preset||'1x'; $('blade').value=b.blade||'big'; $('boatName').value=b.name||'';
+  state.rig=b.rig||'skull'; state.strokeSide=b.strokeSide??1;
+  state.phiA=b.phiA??state.phiA; state.phiR=b.phiR??state.phiR;
+  state.c=b.c??state.c; state.seatOffset=b.seatOffset??state.seatOffset;
+  for(const k of ['s1','s2']) if(b[k]) Object.assign(state.crew[k], b[k]);
+  state.t=0; state.recovery=false;
+  buildControls(); updateRig(); updateMode(); render();
+}
+function loadBoats(){ try{ state.boats=JSON.parse(localStorage.getItem('rudertrimm_boats')||'[]'); }catch(e){ state.boats=[]; } }
+function saveBoats(){ localStorage.setItem('rudertrimm_boats',JSON.stringify(state.boats)); }
+function refreshBoatSelect(){
+  $('boatSelect').innerHTML='<option value="">— gespeichertes Boot laden —</option>'+
+    state.boats.map((b,i)=>`<option value="${i}">${b.name} · ${b.rig==='skull'?'Skull':'Riemen'}</option>`).join('');
+}
+$('boatSelect').addEventListener('change',e=>{ const b=state.boats[+e.target.value]; if(b) applyBoat(b); });
+$('boatSaveAs').addEventListener('click',()=>{ state.boats.push(boatOf()); saveBoats(); refreshBoatSelect(); $('boatSelect').value=state.boats.length-1; });
+$('boatUpdate').addEventListener('click',()=>{ const i=+$('boatSelect').value;
+  if(state.boats[i]) { state.boats[i]=boatOf(); saveBoats(); refreshBoatSelect(); $('boatSelect').value=i; }
+  else $('boatSaveAs').click(); });
+$('boatDelete').addEventListener('click',()=>{ const i=+$('boatSelect').value;
+  if(state.boats[i]!==undefined){ state.boats.splice(i,1); saveBoats(); refreshBoatSelect(); } });
+$('boatExport').addEventListener('click',()=>{ const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(state.boats,null,2)],{type:'application/json'}));
+  a.download='boots-datenbank.json'; a.click(); URL.revokeObjectURL(a.href); });
+$('boatImport').addEventListener('click',()=>$('boatFile').click());
+$('boatFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>{ try{ const arr=JSON.parse(rd.result);
+    if(Array.isArray(arr)){ for(const b of arr) if(b&&b.s1) state.boats.push(b); saveBoats(); refreshBoatSelect(); } }catch(err){ alert('Datei nicht lesbar'); } };
+  rd.readAsText(f); e.target.value=''; });
+
+/* ---------------- Rigg: abgeleitete Größen — pro Platz/Ruderer ---------------- */
+function derived(r){
+  const s=state, skull=s.rig==='skull';
+  r = r || activeRower();
+  const inb=r.IH+r.d, outb=r.L-r.IH-r.d;
+  const U = skull? 2*inb-r.DA : inb-r.DA;
+  const AH=r.L-r.IH, SW=s.phiA+s.phiR, antV=100*s.phiA/SW;
+  const dWL=r.a+s.c-s.kg*0.1;
+  const IHsoll= skull? r.DA/2+8 : r.DA+30;
+  const theta=s.phiA-s.t/100*SW;
+  const DAr= skull? r.DA/2 : r.DA;
+  return {skull,inb,outb,U,AH,SW,antV,dWL,IHsoll,theta,DA:r.DA,DAr};
+}
+function band(v,gLo,gHi,yPad){
+  if(v>=gLo&&v<=gHi) return 'ok';
+  if(v>=gLo-yPad&&v<=gHi+yPad) return 'warn';
+  return 'bad';
+}
+
+/* ================================================================
+   KÖRPERMODELL — eine Kinematik, alle Ansichten sind Projektionen.
+   Koordinaten (Seitenebene): x = heckwärts +, y = über Wasserlinie.
+   Dollenstift bei x=0. Constraints: Hand am Griffende (aus Rigg),
+   Ferse am Stemmbrett, Hüfte auf Rollsitzhöhe.
+   Bewegungsfolge Beine → Rumpf → Arme über Fahrpläne + Residual-
+   verteilung; Knie-, Rumpf- und Ellbogenwinkel sind emergent.
+   ================================================================ */
+/* Körpersegmente aus konkreten, messbaren Maßen:
+   Beinlänge  = Sohle → Hüftgelenk (OS+US)
+   Rumpflänge = Sitzhöhe: Sitz → Scheitel (= T + Hals + Kopf)
+   Spannweite = Mittelfinger → Mittelfinger  →  Armreichweite = (Spannweite − Schulterbreite)/2
+   Standhöhe (abgeleitet) = Beinlänge + Rumpflänge. */
+function SEG(r){
+  const reach=Math.max(24,(r.wingspan - r.SB)/2 - 8); // Schulter → Griff (Fingerspitze minus Handlänge zur Griffmitte)
+  const HEAD=24, NECK=Math.max(6, r.torsoLen*0.09); // Kopf ~konstant, Hals aus Sitzhöhe
+  return {
+    OS:r.legLen/2, US:r.legLen/2,                    // Ober-/Unterschenkel
+    T:Math.max(30, r.torsoLen - HEAD - NECK),        // Hüfte → Schulter
+    OA:reach*0.48, UA:reach*0.52,                    // Ober-/Unterarm bis Griff
+    HEAD, NECK,
+    height:r.legLen + r.torsoLen,                    // Standhöhe (abgeleitet)
+  };
+}
+/* Blatt-Drehung und -Höhe sind ENTKOPPELT: aufgedreht wird VOR der Auslage
+   (über Wasser), dann taucht das Blatt senkrecht/rechtwinklig ein. */
+function featherG(tPct, rec){       // 0 = aufgedreht (senkrecht), 1 = flach
+  if(!rec) return 0;
+  if(tPct>96) return 0;                    // Ausheben: erst rechtwinklig heraus
+  if(tPct>84) return (96-tPct)/12;         // dann abdrehen
+  if(tPct>26) return 1;                    // flach über dem Wasser
+  if(tPct>10) return (tPct-10)/16;         // aufdrehen VOR der Auslage
+  return 0;                                // aufgedreht, bereit zum Eintauchen
+}
+function bladeLiftF(tPct, rec){     // Blatthöhe: −8 = vergraben … +13 = frei
+  if(!rec) return -8;
+  if(tPct>96) return lerp(13,-8,(tPct-96)/4);   // senkrechtes Ausheben
+  if(tPct>8)  return 13;                         // frei über Wasser
+  return lerp(-8,13,tPct/8);                     // senkrechtes Eintauchen zur Auslage
+}
+// Zweigelenk-IK: Gelenk zwischen A und B, Längen l1/l2, side wählt Seite
+function ik2(A,B,l1,l2,pickLower){
+  let dx=B.x-A.x, dy=B.y-A.y, D=Math.hypot(dx,dy);
+  const Dc=clamp(D, Math.abs(l1-l2)+0.5, l1+l2-0.2);
+  if(D<1e-6){dx=1;dy=0;D=1;}
+  const ux=dx/D, uy=dy/D;
+  const a=(l1*l1 - l2*l2 + Dc*Dc)/(2*Dc);
+  const h=Math.sqrt(Math.max(0,l1*l1-a*a));
+  const J1={x:A.x+ux*a-uy*h, y:A.y+uy*a+ux*h};
+  const J2={x:A.x+ux*a+uy*h, y:A.y+uy*a-ux*h};
+  const J = pickLower ? (J1.y<J2.y?J1:J2) : (J1.y>J2.y?J1:J2);
+  const ang=Math.acos(clamp((l1*l1+l2*l2-Dc*Dc)/(2*l1*l2),-1,1));
+  return {J, ang};
+}
+function solveBody(dv, tPct, rec, r){
+  const s=state, seg=SEG(r);
+  const t=clamp(tPct,0,100)/100;
+  const wl=s.kg*0.1, pinY=s.c+r.a;
+  const g=featherG(tPct,rec), lift=bladeLiftF(tPct,rec);  // Drehung & Höhe entkoppelt (senkrechtes Eintauchen)
+  const SW=s.phiA+s.phiR, theta=rad(s.phiA - t*SW);
+  const foot={x:r.stemmX, y:s.c-18};
+  const hipY=s.c+4, dyLeg=hipY-foot.y;
+  // Hand am Griffende (Blatt am Wasser bzw. ausgehoben)
+  const sinB=clamp((pinY-wl-lift)/dv.outb,-0.5,1);
+  const hand={x:dv.inb*Math.sin(theta), y:pinY+dv.inb*sinB};
+  // Fahrpläne (nominell)
+  const knee0=lerp(rad(58), rad(172), smooth(t/0.97));
+  const lam0 = rec
+    ? rad(lerp(32,-23, smooth((t-0.35)/0.65)))
+    : rad(lerp(32,-23, smooth((t-0.18)/0.72)));
+  const legD=a=>Math.sqrt(seg.OS**2+seg.US**2-2*seg.OS*seg.US*Math.cos(a));
+  const hipOf=a=>foot.x-Math.sqrt(Math.max(1,legD(a)**2-dyLeg*dyLeg));
+  const hip0x=hipOf(knee0);
+  // Arme in 3D: der Griff liegt seitlich versetzt zur Schulter (z-Achse = quer).
+  // Für die Reichweite in der Seitenebene zählt nur die Sagittal-Komponente.
+  const DAr=dv.DAr;
+  const zW=DAr-dv.inb*Math.cos(theta);
+  const dzArm=dv.skull? Math.abs(zW-r.SB/2) : Math.abs(zW+r.SB/2*0.95);
+  const armLen3=seg.OA+seg.UA;
+  const armLen=Math.sqrt(Math.max((armLen3*0.55)**2, armLen3*armLen3-dzArm*dzArm));
+  // Oberkörper-Flexion (BWS + Schulterblatt-Vorschub) wächst mit der Vorlage:
+  // Schultergelenk wandert nach vorn-unten — sonst hängen die Arme zu steil (Abb. 4).
+  const flexOf=l=>seg.T*0.42*smooth(l/rad(32));   // Flexion skaliert mit Rumpflänge (langer Rumpf → runderer Rücken)
+  // Nominale Handposition bei gestreckten Armen
+  const shOf=(hx,l)=>{const fx=flexOf(l);
+    return {x:hx+seg.T*Math.sin(l)+0.35*fx, y:hipY+seg.T*Math.cos(l)-0.9*fx};};
+  const armH=sy=>{const q=armLen*armLen-(sy-hand.y)**2; return q<=4?null:Math.sqrt(q);};
+  const sh0=shOf(hip0x,lam0), aH0=armH(sh0.y);
+  const hand0x= aH0===null ? hand.x : sh0.x+aH0;
+  // Residuum: über die Beine erst NACH der Auslage verteilen — in der Auslage
+  // bleiben die Knie beim Kompressions-Template (58°), der Rumpf gleicht aus.
+  const legShare=0.6*smooth(t/0.25);
+  const hipMin=hipOf(rad(172)), hipMax=hipOf(rad(45));
+  const hipX=clamp(hip0x+legShare*(hand.x-hand0x), hipMin, hipMax);
+  const D=Math.hypot(foot.x-hipX, dyLeg);
+  const knee=Math.acos(clamp((seg.OS**2+seg.US**2-D*D)/(2*seg.OS*seg.US),-1,1));
+  const hip={x:hipX,y:hipY};
+  // Rumpfwinkel exakt lösen (gestreckte Arme): F(λ) monoton steigend
+  const F=l=>{const sh=shOf(hipX,l); const ah=armH(sh.y);
+    return ah===null? null : sh.x+ah-hand.x;};
+  let lam=lam0, elbowBent=false, overreach=false;
+  let lo=rad(-38), hi=rad(50), flo=F(lo), fhi=F(hi);
+  if(fhi!==null && fhi<0){ lam=hi; overreach=true; }          // kommt nicht ran
+  else{
+    // λ*: Torso-Winkel, bei dem gestreckte Arme den Griff exakt erreichen.
+    // Hand näher als jede Streckung (flo>0) → synthetisch weit unter dem Fahrplan ansetzen.
+    let lamStar;
+    if(flo!==null && flo>0){ lamStar=lo-rad(30); }
+    else{
+      for(let i=0;i<28;i++){ const mid=(lo+hi)/2, fm=F(mid);
+        if(fm===null||fm>0) hi=mid; else lo=mid; }
+      lamStar=(lo+hi)/2;
+    }
+    // STETIGE Überblendung statt harter 15°-Schwelle: je weiter λ* unter den
+    // Fahrplan fällt (Hand kommt näher), desto mehr übernimmt λ0 und die
+    // Ellbogen beugen sich — aber erst im hinteren Zugdrittel (Auslage: Arme GESTRECKT).
+    const d=lam0-lamStar;                          // >0: Hand innerhalb der Streckreichweite
+    const gate=smooth((t-0.35)/0.3);
+    const bend=smooth((d-rad(3))/rad(22))*gate;
+    elbowBent = bend>0.02;
+    lam=clamp(lerp(lamStar,lam0,bend), rad(-35), rad(50));
+  }
+  const sh=shOf(hipX,lam);
+  const flex=flexOf(lam);           // Rundung des GANZEN Rückens (für die Zeichnung)
+  // Knie-Position (Scheitel oben); Kopf sitzt auf dem gerundeten Wirbelsäulen-Ende
+  const kneeP=ik2(hip,foot,seg.OS,seg.US,false).J;
+  const c7={x:hipX+seg.T*Math.sin(lam), y:hipY+seg.T*Math.cos(lam)};
+  const tilt=lam+rad(22)*smooth(lam/rad(32));
+  const headR=seg.HEAD*0.42;   // Kopf-Radius (halbe Kopfbreite), nicht volle Kopfhöhe
+  const head={x:sh.x+(seg.NECK+headR)*Math.sin(tilt), y:sh.y+(seg.NECK+headR)*Math.cos(tilt), r:headR};
+  const armAng=deg(Math.atan2(sh.y-hand.y, hand.x-sh.x));
+  return {seg, foot, hip, kneeP, sh, c7, hand, head, r, SB:r.SB, flex,
+          knee:deg(knee), lam:deg(lam), armAng,
+          theta:deg(theta), g, lift, wl, pinY, sinB, overreach};
+}
+/* Arme einmal in 3D lösen (x = heckwärts, y = Höhe, z = quer/Steuerbord+);
+   alle drei Ansichten projizieren dieselben Gelenkpunkte. Ellbogen-
+   Orientierung: früh nach unten, im Endzug nach hinten-außen am
+   Körper vorbei (DRV-Griffführung). */
+function solveArms(dv, b, r){
+  const s=state, seg=b.seg, SB=r.SB;
+  const th=rad(b.theta), DAr=dv.DAr;
+  const w=smooth((s.t/100-0.4)/0.6);
+  const OA=seg.OA, UA=seg.UA, L3=OA+UA;
+  const mk=(S,W,zside)=>{
+    const dx=W.x-S.x, dy=W.y-S.y, dz=W.z-S.z;
+    const D3=Math.hypot(dx,dy,dz);
+    let E, ang;
+    if(D3>=L3-0.5){
+      const f=OA/L3;
+      E={x:S.x+dx*f, y:S.y+dy*f, z:S.z+dz*f}; ang=180;
+    } else {
+      const u={x:dx/D3, y:dy/D3, z:dz/D3};
+      const a=(OA*OA-UA*UA+D3*D3)/(2*D3);
+      const h=Math.sqrt(Math.max(0,OA*OA-a*a));
+      let e={x:-0.85*w, y:-(1-w)-0.2*w, z:0.5*w*zside};
+      const dot=e.x*u.x+e.y*u.y+e.z*u.z;
+      e={x:e.x-dot*u.x, y:e.y-dot*u.y, z:e.z-dot*u.z};
+      const n=Math.hypot(e.x,e.y,e.z)||1;
+      E={x:S.x+u.x*a+e.x/n*h, y:S.y+u.y*a+e.y/n*h, z:S.z+u.z*a+e.z/n*h};
+      ang=deg(Math.acos(clamp((OA*OA+UA*UA-D3*D3)/(2*OA*UA),-1,1)));
+    }
+    return {S,E,W,ang};
+  };
+  const arms=[];
+  if(dv.skull){
+    for(const sd of [1,-1]){
+      const S={x:b.sh.x, y:b.sh.y, z:sd*SB/2};
+      // beim Übergriff führt eine Hand über der anderen
+      const W={x:b.hand.x, y:b.hand.y+(sd<0?1.5:-1.5), z:sd*(DAr-dv.inb*Math.cos(th))};
+      arms.push(mk(S,W,sd));
+    }
+  } else {
+    const rho=rad(16)*clamp(b.theta/Math.max(s.phiA,1),-0.5,1);
+    const zC=Math.cos(rho)*SB/2, xR=Math.sin(rho)*SB/2;
+    const W1={x:b.hand.x, y:b.hand.y, z:DAr-dv.inb*Math.cos(th)};
+    const P={x:0, y:b.pinY, z:DAr};
+    const dW={x:P.x-W1.x, y:P.y-W1.y, z:P.z-W1.z};
+    const dL=Math.hypot(dW.x,dW.y,dW.z)||1;
+    const W2={x:W1.x+dW.x/dL*r.handGap, y:W1.y+dW.y/dL*r.handGap, z:W1.z+dW.z/dL*r.handGap};
+    // Rotation am AUSSENARM verankert: der bleibt auf der gelösten Reichweite
+    // → in der Auslage exakt gestreckt; die Innenschulter weicht zurück.
+    arms.push(mk({x:b.sh.x,      y:b.sh.y, z:-zC}, W1, -1));   // Außenarm → Griffende (gestreckt)
+    arms.push(mk({x:b.sh.x-2*xR, y:b.sh.y, z:+zC}, W2, +1));   // Innenarm → 2. Hand
+  }
+  return arms;
+}
+// Referenzposen (Auslage / Endzug / 90°-Stellung) für Checks & Rollweg
+function bodyRefs(dv, r){
+  const b0=solveBody(dv,0,false,r), b1=solveBody(dv,100,false,r);
+  const t90=clamp(state.phiA/(state.phiA+state.phiR)*100,0,100);
+  const b90=solveBody(dv,t90,false,r);
+  const span=b0.hip.x-b1.hip.x;
+  const rollAt=b=> span>1 ? clamp((b0.hip.x-b.hip.x)/span*100,0,100) : 0;
+  return {b0,b1,b90,t90,rollAt};
+}
+
+/* ---------------- Statuskarten & Chips ---------------- */
+const ICONS={
+  ok:'<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="var(--ok)"/><path d="M4.6 8.2 7 10.6l4.4-5" stroke="#04250f" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>',
+  warn:'<svg viewBox="0 0 16 16"><path d="M8 1.5 15 14H1z" fill="var(--warn)"/><path d="M8 6v4m0 1.6v.4" stroke="#241800" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  bad:'<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="var(--bad)"/><path d="M5.3 5.3l5.4 5.4m0-5.4-5.4 5.4" stroke="#2b0505" stroke-width="1.8" stroke-linecap="round"/></svg>',
+};
+const STTXT={ok:'Optimal',warn:'Im Bereich',bad:'Außerhalb'};
+function renderStatus(dv,refs,r){
+  const s=state;
+  const uLo=dv.skull?18:30, uHi=dv.skull?23:34;
+  const dIH=r.IH-dv.IHsoll;
+  // Dollenhöhe: im Werkstatt-Modus messbar ab Rollsitz/Schiene, am Steg über Wasser
+  const aNorm=dv.skull?15:17;
+  let dolleCard;
+  if(s.mode==='werkstatt'){
+    const off=s.heightRef==='schiene'?s.seatOffset:0;
+    dolleCard={n:s.heightRef==='schiene'?'Dollenhöhe ü. Schiene':'Dollenhöhe ü. Rollsitz',
+      v:fmt(r.a+off)+' cm', st:band(r.a,aNorm-2,aNorm+2,2),
+      rng:`Norm ${fmt(aNorm+off)} ± 2 cm`};
+  } else {
+    dolleCard={n:'Dollenhöhe ü. W.', v:fmt(dv.dWL)+' cm', st:band(dv.dWL,22,26,2), rng:'22 – 26 cm'};
+  }
+  const cards=[
+    {n:'Übergriff', v:fmt(dv.U)+' cm', st:band(dv.U,uLo,uHi,2), rng:`${uLo} – ${uHi} cm`},
+    {n:'Auslagewinkel', v:fmt(s.phiA)+'°', st:dv.skull?band(s.phiA,65,75,5):band(s.phiA,50,60,5), rng:dv.skull?'65 – 75°':'~54° (Riemen)'},
+    {n:'Schlagweite', v:fmt(dv.SW)+'°', st:band(dv.SW,dv.skull?105:85,dv.skull?115:95,5), rng:dv.skull?'110° (Skull)':'90° (Riemen)'},
+    dolleCard,
+    {n:'Dollen-Neigung', v:fmt(r.anlage)+'°', st:band(r.anlage,3,5,2), rng:'Norm 4° (±4°)'},
+    {n:'Innenhebel', v:fmt(r.IH)+' cm', st:Math.abs(dIH)<=1?'ok':Math.abs(dIH)<=2?'warn':'bad', rng:(dv.skull?'DA/2 + 8 cm':'DA + 30 cm')+` = ${fmt(dv.IHsoll)}`},
+    {n:'Stemmbrett', v:fmt(refs.b90.knee,0)+'°', st:band(refs.b90.knee,160,170,6), rng:'Knie bei 90° ≈ 165°'},
+  ];
+  $('cards').innerHTML=cards.map(c=>
+    `<div class="scard ${c.st}"><div class="ico">${ICONS[c.st]}${c.n}</div>
+     <div class="big">${c.v}</div><div class="st">${STTXT[c.st]}</div><div class="rng">${c.rng}</div></div>`).join('');
+  const chips=[
+    {n:'Arme in Auslage',v:fmt(refs.b0.armAng,0)+'° (Modellziel 20–32° ≙ Handbuch ~6°)',st:band(refs.b0.armAng,20,32,6)},
+    {n:'Anteil vor Orthogonale',v:fmt(dv.antV,0)+' %',st:band(dv.antV,55,65,5)},
+    // Gegenstück zur Dollenhöhen-Karte als Info; plus BB/StB-Vergleich (euer Schienen-Messgerät)
+    s.mode==='werkstatt'
+      ? {n:'Dollenhöhe ü. Wasser (berechnet)',v:fmt(dv.dWL)+' cm · Soll 22–26',st:''}
+      : {n:'Dollenhöhe ü. Rollsitz',v:fmt(r.a)+' cm',st:''},
+    dv.skull
+      ? {n:'Δ Dolle BB−StB',v:fmt(r.dBB)+' cm (Ziel +0,5–1)',st:band(r.dBB,0.5,1,0.5)}
+      : (isSingle()? null : {n:'Δ Dolle Platz 1−2',v:fmt(state.crew.s1.a-state.crew.s2.a)+' cm (Ziel 0)',st:band(state.crew.s1.a-state.crew.s2.a,-0.25,0.25,0.5)}),
+    {n:'Außenneigung',v:fmt(r.aussen)+'°',st:r.aussen<=2?'ok':'warn'},
+    {n:'Rollbahn-Überstand',v:fmt(r.rueh)+' cm',st:r.rueh>=5?'ok':r.rueh>=0?'warn':'bad'},
+    {n:'Stemmbrettwinkel',v:fmt(r.stemmW)+'°',st:band(r.stemmW,42,45,2)},
+    {n:'Rollweg bei 90°',v:fmt(refs.rollAt(refs.b90),0)+' %',st:''},
+    {n:'Außenhebel',v:fmt(dv.AH)+' cm',st:''},
+    {n:'Hebelverhältnis',v:'1 : '+fmt(dv.AH/r.IH,2),st:''},
+    {n:'Ruderwinkel θ',v:fmt(dv.theta)+'°',st:''},
+  ];
+  if(refs.b0.overreach) chips.unshift({n:'Auslage erreichbar',v:'nein — Stemmbrett/Körpermaße prüfen',st:'bad'});
+  $('chips').innerHTML=chips.filter(Boolean).map(c=>
+    `<div class="chip ${c.st}">${c.st?'<span class="dot"></span>':''}${c.n} <b>${c.v}</b></div>`).join('');
+}
+
+/* ---------------- SVG helpers ---------------- */
+const NS='http://www.w3.org/2000/svg';
+function el(svg,tag,at){const e=document.createElementNS(NS,tag);
+  for(const k in at)e.setAttribute(k,at[k]); svg.appendChild(e); return e;}
+function txt(svg,x,y,str,at={}){const e=el(svg,'text',{x,y,...at}); e.textContent=str; return e;}
+function newSVG(host,W,H){host.innerHTML='';
+  const svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`); host.appendChild(svg); return svg;}
+function dim(svg,x1,y1,x2,y2,label,opts={}){
+  const col=opts.col||'#7f92ac';
+  el(svg,'line',{x1,y1,x2,y2,stroke:col,'stroke-width':1});
+  for(const [px,py,qx,qy] of [[x1,y1,x2,y2],[x2,y2,x1,y1]]){
+    const ang=Math.atan2(qy-py,qx-px), s=6;
+    el(svg,'path',{d:`M${px},${py} L${px+s*Math.cos(ang-0.4)},${py+s*Math.sin(ang-0.4)} L${px+s*Math.cos(ang+0.4)},${py+s*Math.sin(ang+0.4)} Z`,fill:col});
+  }
+  txt(svg,(x1+x2)/2+(opts.dx||0),(y1+y2)/2+(opts.dy||-5),label,{'text-anchor':opts.anchor||'middle',fill:opts.tcol||col});
+}
+function arrow(svg,x1,y1,x2,y2,col,w){
+  el(svg,'line',{x1,y1,x2,y2,stroke:col,'stroke-width':w,'stroke-linecap':'round'});
+  const ang=Math.atan2(y2-y1,x2-x1), s=w*3.2;
+  el(svg,'path',{d:`M${x2},${y2} L${x2-s*Math.cos(ang-0.45)},${y2-s*Math.sin(ang-0.45)} L${x2-s*Math.cos(ang+0.45)},${y2-s*Math.sin(ang+0.45)} Z`,fill:col});
+}
+
+/* ---------------- Blattformen (lokal: x 0..1 längs, y in Einheiten der Blattbreite BW) ----------------
+   Big-Blade (Beil): Schaftachse liegt nahe der geraden OBERkante, die Fläche hängt
+   fast vollständig auf einer Seite; breite, fast gerade Abschlusskante.
+   Macon: symmetrische Tulpe, größte Breite bei ~60–70 %, breit gerundete Spitze. */
+const BLADE_BIG=[[0,.08],[.2,.20],[.5,.26],[.85,.28],[1,.26],[1,-.55],[.93,-.70],[.55,-.66],[.2,-.42],[0,-.10]];
+const BLADE_MAC=[[0,.06],[.15,.22],[.35,.38],[.6,.47],[.8,.48],[.93,.42],[1,.25],[1.03,0],
+                 [1,-.25],[.93,-.42],[.8,-.48],[.6,-.47],[.35,-.38],[.15,-.22],[0,-.06]];
+function bladeDims(type,skull){
+  return type==='mac' ? {BL:skull?50:58, BW:skull?17:20} : {BL:skull?46:54, BW:skull?21:25};   // 46/54 = WM-2017-Median
+}
+function bladePts(type){ return type==='mac' ? BLADE_MAC : BLADE_BIG; }
+// Blatt zeichnen: base=Blatthals (Screen), dirU=Längsachse zur Spitze, dirV=Breitenachse.
+// Beide Achsen sind PROJEKTIONEN der 3D-Richtungen (Norm ≤ 1) — die Verkürzung
+// steckt in der Achse selbst, das Blatt rotiert in keiner Ansicht künstlich.
+function drawBlade(svg,base,dirU,len,dirV,wide,type,flip){
+  const f=flip?-1:1;
+  const d=bladePts(type).map((p,i)=>{
+    const gx=base.x+dirU.x*p[0]*len+dirV.x*p[1]*wide*f;
+    const gy=base.y+dirU.y*p[0]*len+dirV.y*p[1]*wide*f;
+    return (i?'L':'M')+gx.toFixed(1)+','+gy.toFixed(1);
+  }).join(' ')+' Z';
+  el(svg,'path',{d,fill:'var(--blade)',stroke:'#a87b28','stroke-width':.8,opacity:.95});
+}
+
+/* ================= Draufsicht (Boot horizontal, Bug links) ================= */
+function renderTop(dv,seats,primary){
+  const s=state, W=1180, body=primary.b;
+  const DAr=dv.DAr;                      // Referenz-Platz (Bögen, Keil, Maße)
+  const K=0.55;                          // Außenhebel-Verkürzung (nur Darstellung)
+  const rOut=dv.outb*K, rIn=dv.inb;
+  // Ausschnitt über die größten Hebel aller Plätze
+  const DArMax=Math.max(...seats.map(x=>x.dv.DAr)), outMax=Math.max(...seats.map(x=>x.dv.outb))*K;
+  const latMax=DArMax+outMax*Math.max(Math.cos(rad(s.phiA)),Math.cos(rad(s.phiR)))+34;
+  const lat=Math.max(latMax,DArMax+rIn*0.4+60,150);
+  const sc=Math.min((W-40)/560, 250/lat);
+  const H=2*lat*sc+46;
+  const cx=W/2, cy=H/2+8;
+  const X=u=>cx+u*sc, Y=v=>cy-v*sc;     // u: heckwärts + (Bug links), v: quer
+  const svg=newSVG($('vTop'),W,H);
+  const th=rad(body.theta), g=body.g;
+  const {BL,BW}=bladeDims($('blade').value,dv.skull);
+
+  // Zugbereich
+  el(svg,'rect',{x:X(-240),y:Y(body.SB/2),width:480*sc,height:body.SB*sc,fill:'rgba(46,204,113,.07)',stroke:'rgba(46,204,113,.3)','stroke-dasharray':'3 4'});
+  el(svg,'line',{x1:X(-275),y1:cy,x2:X(275),y2:cy,stroke:'var(--fg-mut)','stroke-dasharray':'6 5'});
+  el(svg,'line',{x1:cx,y1:Y(lat-4),x2:cx,y2:Y(-lat+4),stroke:'#fff','stroke-dasharray':'5 5',opacity:.45});
+  txt(svg,cx,16,'ORTHOGONALSTELLUNG',{class:'cap','text-anchor':'middle',fill:'var(--fg)'});
+  txt(svg,X(-272),cy-6,'Bug',{class:'cap'}); txt(svg,X(244),cy-6,'Heck',{class:'cap','text-anchor':'end'});
+
+  // Rumpf
+  const hw=13;
+  el(svg,'path',{d:`M${X(-250)},${cy} Q${X(-150)},${Y(hw)} ${X(0)},${Y(hw+1)} Q${X(150)},${Y(hw)} ${X(250)},${cy} Q${X(150)},${Y(-hw)} ${X(0)},${Y(-hw-1)} Q${X(-150)},${Y(-hw)} ${X(-250)},${cy} Z`,
+    fill:'var(--hull)',stroke:'#42597a','stroke-width':1});
+  el(svg,'rect',{x:X(-65),y:Y(9),width:120*sc,height:18*sc,rx:8,fill:'#0b1420',stroke:'#42597a','stroke-width':.8});
+
+  const RS=dv.skull?1:primary.side;                     // Referenzseite (Schlagmann)
+  const arcSides=dv.skull?[1,-1]:[RS];
+
+  // Auslage-Keil + Schlagbogen + Griffweg — für den Referenz-Sitz
+  {
+    const pv0=RS*DAr, rk=rOut*0.92, aC=rad(s.phiA);
+    let kd=`M${X(0)},${Y(pv0)} `;
+    for(let i=0;i<=20;i++){ const a=rad(lerp(0,s.phiA,i/20)); kd+='L'+X(-rk*Math.sin(a))+','+Y(pv0+RS*rk*Math.cos(a))+' '; }
+    el(svg,'path',{d:kd+'Z',fill:'rgba(46,204,113,.13)',stroke:'rgba(46,204,113,.5)','stroke-width':1});
+    txt(svg,X(-rOut*0.7*Math.sin(aC))-8,Y(pv0+RS*rOut*0.75*Math.cos(aC))-6,`Auslagewinkel ${fmt(s.phiA)}°`,{fill:'var(--ok)',class:'cap','text-anchor':'end'});
+  }
+  for(const sd of arcSides){
+    const pv=sd*DAr;
+    for(const [r,col,sgn] of [[rOut,'rgba(63,162,255,.55)',1],[rIn,'rgba(232,176,75,.5)',-1]]){
+      let dstr='';
+      for(let i=0;i<=44;i++){ const a=rad(lerp(s.phiA,-s.phiR,i/44));
+        dstr+=(i?'L':'M')+X(-sgn*r*Math.sin(a))+','+Y(pv+sd*sgn*r*Math.cos(a))+' '; }
+      el(svg,'path',{d:dstr,fill:'none',stroke:col,'stroke-width':1.3,'stroke-dasharray':'5 4'});
+    }
+    for(const A of [s.phiA,-s.phiR]){ const a=rad(A);
+      el(svg,'line',{x1:X(0),y1:Y(pv),x2:X(-rOut*Math.sin(a)),y2:Y(pv+sd*rOut*Math.cos(a)),stroke:'var(--fg-mut)','stroke-width':.8,'stroke-dasharray':'2 4'}); }
+  }
+  txt(svg,X(0)+8,Y(RS*DAr)-8,'Dolle',{class:'cap'});
+
+  // ---- ein Sitz: Dollen + Ruder + Ruderer, längs um ox versetzt ----
+  function drawSeatTop(seat,isRef){
+    const b=seat.b, ox=seat.ox, th=rad(b.theta), g=b.g, zf=dv.skull?1:seat.side;
+    const sdv=seat.dv;                                   // Rigg DIESES Platzes
+    const sOut=sdv.outb*K, sIn=sdv.inb, sDAr=sdv.DAr;
+    const XL=u=>X(u+ox), YZ=z=>Y(zf*z);
+    const seatSides=dv.skull?[1,-1]:[seat.side];
+    const bodyCol=isRef?'var(--body)':'var(--accent2)', jointCol=isRef?'var(--accent2)':'var(--accent)';
+    for(const sd of seatSides){
+      const pv=sd*sDAr;
+      const tip={x:XL(-sOut*Math.sin(th)), y:Y(pv+sd*sOut*Math.cos(th))};
+      const neckR=sOut-BL*K, neck={x:XL(-neckR*Math.sin(th)), y:Y(pv+sd*neckR*Math.cos(th))};
+      const hnd={x:XL(sIn*Math.sin(th)), y:Y(pv-sd*sIn*Math.cos(th))};
+      el(svg,'line',{x1:hnd.x,y1:hnd.y,x2:neck.x,y2:neck.y,stroke:'var(--wood)','stroke-width':3,'stroke-linecap':'round'});
+      const dir={x:(tip.x-neck.x)/(BL*K*sc), y:(tip.y-neck.y)/(BL*K*sc)};
+      drawBlade(svg,neck,dir,BL*K*sc,{x:-dir.y,y:dir.x},BW*sc*K*lerp(0.16,1,g),$('blade').value, sd>0);
+      el(svg,'circle',{cx:hnd.x,cy:hnd.y,r:4,fill:jointCol});
+      el(svg,'circle',{cx:XL(0),cy:Y(pv),r:4.5,fill:'#e4ecf7',stroke:'#42597a'});
+    }
+    // Körper (Projektion x→längs, z→quer; z gespiegelt je nach Seite)
+    const S1=b.arms[0].S, S2=b.arms[b.arms.length-1].S;
+    el(svg,'path',{d:`M${XL(b.hip.x)},${Y(11)} L${XL(S1.x)},${YZ(S1.z)} L${XL(S2.x)},${YZ(S2.z)} L${XL(b.hip.x)},${Y(-11)} Z`,fill:bodyCol,opacity:.28});
+    el(svg,'line',{x1:XL(S1.x),y1:YZ(S1.z),x2:XL(S2.x),y2:YZ(S2.z),stroke:bodyCol,'stroke-width':5,'stroke-linecap':'round',opacity:.85});
+    el(svg,'circle',{cx:XL(b.head.x),cy:cy,r:b.head.r*sc,fill:bodyCol});
+    for(const A of b.arms){
+      el(svg,'path',{d:`M${XL(A.S.x)},${YZ(A.S.z)} L${XL(A.E.x)},${YZ(A.E.z)} L${XL(A.W.x)},${YZ(A.W.z)}`,fill:'none',stroke:bodyCol,'stroke-width':3,'stroke-linecap':'round','stroke-linejoin':'round',opacity:.85});
+      el(svg,'circle',{cx:XL(A.W.x),cy:YZ(A.W.z),r:3.4,fill:jointCol});
+    }
+    if(seats.length>1) txt(svg,XL(b.head.x),cy-b.head.r*sc-4,seat.name,{'text-anchor':'middle',fill:bodyCol,class:'cap'});
+  }
+  [...seats].sort((a,b)=>a.ox-b.ox).forEach(seat=>drawSeatTop(seat,seat===primary));
+
+  // Übergriff-Maß
+  if(dv.U>0){
+    const y1=Y(dv.skull?DAr-dv.inb:0), y2=Y(dv.skull?-(DAr-dv.inb):RS*(DAr-dv.inb));
+    dim(svg,X(95),y1,X(95),y2,`Ü = ${fmt(dv.U)} cm`,{col:'var(--accent2)',tcol:'var(--accent2)',anchor:'start',dx:8,dy:3});
+  }
+  txt(svg,X(-255),Y(-lat+14),`Schlagweite ${fmt(dv.SW)}°  ·  θ = ${fmt(body.theta)}°  ·  Blatt ${body.g>0.5?'flach (abgedreht)':'aufgedreht'}`,{class:'big'});
+
+  const lx=W-208, ly=26;
+  const leg=[['rgba(63,162,255,.8)','Schlagbogen (Blattweg)','5 4'],['rgba(232,176,75,.8)','Griffweg','5 4'],
+             ['rgba(46,204,113,.8)','Zugbereich / Auslage','3 4'],['#ffffff88','Orthogonalstellung','5 5']];
+  leg.forEach((L,i)=>{
+    el(svg,'line',{x1:lx,y1:ly+i*17,x2:lx+26,y2:ly+i*17,stroke:L[0],'stroke-width':2,'stroke-dasharray':L[2]});
+    txt(svg,lx+33,ly+i*17+4,L[1],{});
+  });
+}
+
+/* ================= Querschnitt ================= */
+function renderCross(dv,primary){
+  const s=state, W=560, body=primary.b, r=primary.r;
+  const RS=dv.skull?1:primary.side;          // Seite des bearbeiteten Ruderers
+  const DAr=dv.DAr;
+  const wl=body.wl, pinY=body.pinY;
+  const extX=DAr+50, topY=Math.max(pinY,body.head.y)+14, botY=-22;
+  const sc=(W-24)/(2*extX);
+  const H=(topY-botY)*sc+30;
+  const cx=W/2, oy=16+topY*sc;
+  const X=x=>cx+x*sc, Y=y=>oy-y*sc, XZ=z=>X(RS*z);   // XZ spiegelt die Querachse auf die Ruderer-Seite
+  const svg=newSVG($('vCross'),W,H);
+  const {BL,BW}=bladeDims($('blade').value,dv.skull);
+  const g=body.g;
+
+  if(s.mode==='wasser'){
+    el(svg,'rect',{x:0,y:Y(wl),width:W,height:H-Y(wl),fill:'var(--water)',opacity:.6});
+    el(svg,'line',{x1:0,y1:Y(wl),x2:W,y2:Y(wl),stroke:'var(--waterline)','stroke-width':1.5,opacity:.8});
+    txt(svg,8,Y(wl)+14,s.kg?`Wasserlinie (${s.kg>0?'+':''}${s.kg} kg → ${s.kg>0?'+':''}${fmt(s.kg,0)} mm)`:'Wasserlinie',{fill:'var(--waterline)'});
+  } else {
+    // Werkstatt: Bock unter dem Rumpf
+    el(svg,'path',{d:`M${X(0)},${Y(-13)} L${X(-30)},${Y(-30)} M${X(0)},${Y(-13)} L${X(30)},${Y(-30)} M${X(-19)},${Y(-24)} L${X(19)},${Y(-24)}`,stroke:'#7a6a4f','stroke-width':4,fill:'none','stroke-linecap':'round'});
+    txt(svg,8,16,'Werkstatt-Modus · Boot auf Böcken',{class:'cap',fill:'var(--fg-dim)'});
+  }
+
+  const hb=s.c+6.5;
+  el(svg,'path',{d:`M${X(-27)},${Y(hb)} Q${X(-25)},${Y(-14)} ${X(0)},${Y(-14.5)} Q${X(25)},${Y(-14)} ${X(27)},${Y(hb)} L${X(-27)},${Y(hb)} Z`,
+    fill:'var(--hull)',stroke:'#42597a'});
+  el(svg,'rect',{x:X(-14),y:Y(s.c),width:28*sc,height:3.2*sc,rx:2,fill:'#9aa7b5'});
+
+  const sides=dv.skull?[1,-1]:[1];           // kanonische +z-Seite(n); XZ spiegelt bei Riemen
+  const cosT=Math.cos(rad(body.theta));      // Längs-Auslenkung verkürzt die Frontalprojektion
+  const tipY=wl+body.lift;
+  for(const sd of sides){
+    el(svg,'line',{x1:XZ(sd*26),y1:Y(hb),x2:XZ(sd*DAr),y2:Y(pinY),stroke:'#6d83a0','stroke-width':2});
+    el(svg,'line',{x1:XZ(sd*17),y1:Y(hb-4),x2:XZ(sd*DAr),y2:Y(pinY-1.5),stroke:'#6d83a0','stroke-width':1.1});
+    const tilt=rad(r.aussen*4)*sd*RS;
+    el(svg,'line',{x1:XZ(sd*DAr),y1:Y(pinY-2),x2:XZ(sd*DAr)+Math.sin(tilt)*10,y2:Y(pinY+7),stroke:'#e4ecf7','stroke-width':3});
+    // Ruder als Projektion desselben 3D-Zustands wie in Drauf-/Seitenansicht
+    const arm=body.arms[dv.skull?(sd>0?0:1):0];
+    const zN=sd*(DAr+(dv.outb-BL)*cosT), zTip=sd*(DAr+dv.outb*cosT);
+    const yN=lerp(pinY,tipY,(dv.outb-BL)/dv.outb);
+    el(svg,'line',{x1:XZ(arm.W.z),y1:Y(arm.W.y),x2:XZ(sd*DAr),y2:Y(pinY),stroke:'var(--wood)','stroke-width':2.5,'stroke-linecap':'round'});
+    el(svg,'line',{x1:XZ(sd*DAr),y1:Y(pinY),x2:XZ(zN),y2:Y(yN),stroke:'var(--wood)','stroke-width':2.5,'stroke-linecap':'round'});
+    el(svg,'ellipse',{cx:XZ((zN+zTip)/2),cy:Y((tipY+yN)/2),
+      rx:Math.max(4,BL/2*cosT*sc), ry:Math.max(2.5,lerp(BW*0.5,2.5,g)*sc), fill:'var(--blade)',stroke:'#a87b28','stroke-width':.8});
+    el(svg,'circle',{cx:XZ(sd*DAr),cy:Y(pinY),r:4,fill:'#e4ecf7',stroke:'#42597a'});
+  }
+  // Ruderer frontal: Beine, Torso, Kopf, Arme — alles Projektion des Körpermodells (z gespiegelt via XZ)
+  {
+    for(const sd of [1,-1])
+      el(svg,'path',{d:`M${X(sd*6)},${Y(body.hip.y)} L${X(sd*9)},${Y(body.kneeP.y)} L${X(sd*11)},${Y(body.foot.y)}`,
+        fill:'none',stroke:'var(--body)','stroke-width':4,opacity:.45,'stroke-linecap':'round','stroke-linejoin':'round'});
+    const S1=body.arms[0].S, S2=body.arms[body.arms.length-1].S;
+    el(svg,'path',{d:`M${X(-10)},${Y(s.c+3)} L${XZ(S2.z)},${Y(S2.y)} Q${X(0)},${Y(body.sh.y+5)} ${XZ(S1.z)},${Y(S1.y)} L${X(10)},${Y(s.c+3)} Z`,
+      fill:'var(--body)',opacity:.30});
+    el(svg,'circle',{cx:X(0),cy:Y(body.head.y),r:body.head.r*sc,fill:'var(--body)',opacity:.75});
+    for(const A of body.arms){
+      el(svg,'path',{d:`M${XZ(A.S.z)},${Y(A.S.y)} L${XZ(A.E.z)},${Y(A.E.y)} L${XZ(A.W.z)},${Y(A.W.y)}`,
+        fill:'none',stroke:'var(--body)','stroke-width':3,'stroke-linecap':'round','stroke-linejoin':'round',opacity:.75});
+      el(svg,'circle',{cx:XZ(A.W.z),cy:Y(A.W.y),r:3.2,fill:'var(--accent2)'});
+    }
+  }
+  if(r.aussen>0) txt(svg,XZ(DAr),Y(pinY+10),`Außenneigung ${fmt(r.aussen)}° (4× überhöht)`,{'text-anchor':RS>0?'end':'start'});
+
+  const mx=dv.skull? X(-DAr-16) : XZ(DAr+16);
+  if(s.mode==='werkstatt'){
+    const baseY=s.heightRef==='schiene'? s.c-s.seatOffset : s.c;   // Schiene liegt unter dem Sitz-Tiefpunkt
+    const off=s.heightRef==='schiene'?s.seatOffset:0;
+    dim(svg,mx,Y(baseY),mx,Y(pinY),`${fmt(r.a+off)} cm`,{col:'var(--ok)',tcol:'var(--ok)',anchor:'middle',dy:-7});
+    txt(svg,mx,Y(pinY)-20,'Dollenhöhe',{'text-anchor':'middle',fill:'var(--ok)',class:'cap'});
+    txt(svg,mx,Y(baseY)+16,s.heightRef==='schiene'?'über Schiene':'über Rollsitz',{'text-anchor':'middle',fill:'var(--ok)'});
+  } else {
+    dim(svg,mx,Y(wl),mx,Y(pinY),`${fmt(dv.dWL)} cm`,{col:'var(--ok)',tcol:'var(--ok)',anchor:'middle',dy:-7});
+    txt(svg,mx,Y(pinY)-20,'Dollenhöhe',{'text-anchor':'middle',fill:'var(--ok)',class:'cap'});
+    txt(svg,mx,Y(wl)+16,'über Wasser',{'text-anchor':'middle',fill:'var(--ok)'});
+  }
+  const m3=Y(pinY+13);
+  if(dv.skull) dim(svg,X(-DAr),m3,X(DAr),m3,`DA = ${fmt(dv.DA)} cm`,{});
+  else dim(svg,X(0),m3,XZ(DAr),m3,`DA = ${fmt(dv.DA)} cm`,{});
+  txt(svg,XZ(DAr)-4*RS,Y(pinY-14),`Dollen-Neigung ${fmt(r.anlage)}°`,{'text-anchor':RS>0?'end':'start',fill:'var(--ok)'});
+}
+
+/* ================= Seitenansicht ================= */
+function renderSide(dv,seats,primary,refs){
+  const s=state, W=760;
+  const {BL,BW}=bladeDims($('blade').value,dv.skull);
+  const blade=$('blade').value;
+  // Ausschnitt über alle Sitze
+  let x0=-115, x1=140, ytop=0;
+  for(const seat of seats){ const b=seat.b, ox=seat.ox;
+    x0=Math.min(x0, ox-seat.dv.outb*Math.sin(rad(s.phiA))-14);
+    x1=Math.max(x1, ox+b.foot.x+70, ox+seat.dv.outb*Math.sin(rad(s.phiR))+14);
+    ytop=Math.max(ytop, b.head.y, b.pinY);
+  }
+  const ext={x0,x1,y0:-18,y1:ytop+16};
+  const sc=(W-20)/(ext.x1-ext.x0);
+  const H=(ext.y1-ext.y0)*sc+24;
+  const X=x=>10+(x-ext.x0)*sc, Y=y=>H-12-(y-ext.y0)*sc;
+  const svg=newSVG($('vSide'),W,H);
+  const wl=primary.b.wl;
+
+  if(s.mode==='wasser'){
+    el(svg,'rect',{x:0,y:Y(wl),width:W,height:H-Y(wl),fill:'var(--water)',opacity:.6});
+    el(svg,'line',{x1:0,y1:Y(wl),x2:W,y2:Y(wl),stroke:'var(--waterline)','stroke-width':1.5,opacity:.8});
+  } else {
+    for(const bx of [ext.x0+45, ext.x1-55]){
+      el(svg,'path',{d:`M${X(bx)},${Y(-11)} L${X(bx-16)},${Y(-30)} M${X(bx)},${Y(-11)} L${X(bx+16)},${Y(-30)} M${X(bx-10)},${Y(-25)} L${X(bx+10)},${Y(-25)}`,stroke:'#7a6a4f','stroke-width':4,fill:'none','stroke-linecap':'round'});
+    }
+    txt(svg,X(ext.x0+8),Y(-26),'Werkstatt-Modus · Bewegung simuliert',{class:'cap',fill:'var(--fg-dim)'});
+  }
+  const hb=s.c+6.5;
+  el(svg,'path',{d:`M${X(ext.x0+2)},${Y(hb)} L${X(ext.x1-18)},${Y(hb)} Q${X(ext.x1-4)},${Y(hb-4)} ${X(ext.x1-9)},${Y(-7)} L${X(ext.x0+16)},${Y(-12)} Q${X(ext.x0+2)},${Y(-11)} ${X(ext.x0+2)},${Y(hb)} Z`,
+    fill:'var(--hull)',opacity:.55,stroke:'#42597a'});
+  txt(svg,X(ext.x0+6),Y(hb)-6,'← Bug',{class:'cap'}); txt(svg,X(ext.x1-20),Y(hb)-6,'Heck →',{class:'cap','text-anchor':'end'});
+
+  // ---- ein Sitz (Rig + Ruder + Ruderer), um ox längs versetzt ----
+  function drawSeat(seat,isRef){
+    const b=seat.b, ox=seat.ox, th=rad(b.theta), rr=seat.r, sdv=seat.dv;
+    const XL=x=>X(x+ox);
+    const pinY=b.pinY, bladeX=-sdv.outb*Math.sin(th), bladeY=wl+b.lift;
+    const bodyCol = isRef ? '#dbe4ee' : 'var(--accent2)';
+    const jointCol = isRef ? 'var(--accent2)' : 'var(--accent)';
+    const trackEnd=rr.rueh, track0=trackEnd-rr.rollL;
+    // Rollbahn
+    el(svg,'line',{x1:XL(track0),y1:Y(s.c-4),x2:XL(trackEnd),y2:Y(s.c-4),stroke:'#9aa7b5','stroke-width':3});
+    for(const e of [track0,trackEnd]) el(svg,'line',{x1:XL(e),y1:Y(s.c-6.5),x2:XL(e),y2:Y(s.c-1.5),stroke:'#9aa7b5','stroke-width':2});
+    // Dollenanlage + Stift
+    const tA=rad(rr.anlage*4);
+    el(svg,'line',{x1:XL(0),y1:Y(pinY-3),x2:XL(Math.sin(tA)*10),y2:Y(pinY+7),stroke:'#e4ecf7','stroke-width':3});
+    el(svg,'circle',{cx:XL(0),cy:Y(pinY),r:4,fill:'#e4ecf7',stroke:'#42597a'});
+    if(isRef){
+      el(svg,'line',{x1:XL(0),y1:Y(-8),x2:XL(0),y2:Y(pinY+14),stroke:'#fff','stroke-dasharray':'4 5',opacity:.4});
+      txt(svg,XL(0)+6,Y(-4),'Senkrechte (Dollenanlage)',{class:'cap'});
+      txt(svg,XL(0)+7,Y(pinY+9),`Dolle · Anlage ${fmt(rr.anlage)}° z. Heck (4× überhöht)`,{});
+      dim(svg,XL(0),Y(s.c-10),XL(trackEnd),Y(s.c-10),`${fmt(rr.rueh)} cm`,{dy:13});
+    }
+    // Stemmbrett + Ferse
+    const bw=rad(rr.stemmW), bTop={x:b.foot.x+30*Math.cos(bw), y:b.foot.y+30*Math.sin(bw)};
+    el(svg,'line',{x1:XL(b.foot.x),y1:Y(b.foot.y),x2:XL(bTop.x),y2:Y(bTop.y),stroke:'var(--wood)','stroke-width':4,'stroke-linecap':'round'});
+    if(isRef){
+      txt(svg,XL(bTop.x)+6,Y(bTop.y)+2,`Stemmbrett ${fmt(rr.stemmW)}°`,{});
+      dim(svg,XL(0),Y(b.foot.y-4),XL(b.foot.x),Y(b.foot.y-4),`Fa = ${fmt(b.r.stemmX)} cm`,{dy:13});
+    }
+    // Ruder + Blatt
+    el(svg,'line',{x1:XL(b.hand.x),y1:Y(b.hand.y),x2:XL(0),y2:Y(pinY),stroke:'var(--wood)','stroke-width':2.6});
+    const neckF=(sdv.outb-BL)/sdv.outb;
+    const neck={x:XL(bladeX*neckF), y:Y(lerp(pinY,bladeY,neckF))};
+    el(svg,'line',{x1:XL(0),y1:Y(pinY),x2:neck.x,y2:neck.y,stroke:'var(--wood)','stroke-width':2.6});
+    const cosB=Math.sqrt(Math.max(0,1-b.sinB*b.sinB));
+    drawBlade(svg,neck,{x:-Math.sin(th)*cosB,y:b.sinB},BL*sc,{x:-b.g*Math.cos(th),y:-(1-b.g)},BW*sc,blade,false);
+    // Kraftpfeil (nur Referenz, eingetauchtes Blatt)
+    if(isRef && s.mode==='wasser' && !state.recovery && s.t>4 && s.t<98){
+      const len=16+34*Math.sin(Math.PI*s.t/100);
+      arrow(svg,XL(bladeX),Y(bladeY),XL(bladeX-len*0.9),Y(bladeY-len*0.4),'var(--accent)',3);
+      txt(svg,XL(bladeX-len)-4,Y(bladeY-len*0.45)-6,'Blattdruck (schematisch)',{fill:'var(--accent2)',class:'cap','text-anchor':'end'});
+    }
+    // Rollsitz + Körper
+    el(svg,'rect',{x:XL(b.hip.x-11),y:Y(s.c),width:22*sc,height:3.2*sc,rx:2,fill:'#9aa7b5'});
+    const st={stroke:bodyCol,'stroke-width':3.4,'stroke-linecap':'round','stroke-linejoin':'round',fill:'none'};
+    el(svg,'path',{d:`M${XL(b.hip.x)},${Y(b.hip.y)} L${XL(b.kneeP.x)},${Y(b.kneeP.y)} L${XL(b.foot.x)},${Y(b.foot.y)}`,...st});
+    // Rumpf: GANZER Rücken rundet — Wölbung bugwärts, proportional zur Flexion
+    {
+      const dxs=b.sh.x-b.hip.x, dys=b.sh.y-b.hip.y, dl=Math.hypot(dxs,dys)||1;
+      let nx=-dys/dl, ny=dxs/dl; if(nx>0){nx=-nx; ny=-ny;}   // Normale zeigt bugwärts
+      const bulge=(b.flex||0)*0.6;
+      const mxp=(b.hip.x+b.sh.x)/2+nx*bulge, myp=(b.hip.y+b.sh.y)/2+ny*bulge;
+      el(svg,'path',{d:`M${XL(b.hip.x)},${Y(b.hip.y)} Q${XL(mxp)},${Y(myp)} ${XL(b.sh.x)},${Y(b.sh.y)}`,...st,'stroke-width':4});
+    }
+    b.arms.forEach((A,i)=>{
+      const op=i===0?1:0.6;
+      el(svg,'path',{d:`M${XL(A.S.x)},${Y(A.S.y)} L${XL(A.E.x)},${Y(A.E.y)} L${XL(A.W.x)},${Y(A.W.y)}`,...st,'stroke-width':2.6,opacity:op});
+      el(svg,'circle',{cx:XL(A.E.x),cy:Y(A.E.y),r:2.4,fill:jointCol,opacity:op});
+      el(svg,'circle',{cx:XL(A.W.x),cy:Y(A.W.y),r:3.4,fill:jointCol,opacity:op});
+    });
+    for(const p of [b.hip,b.kneeP,b.sh]) el(svg,'circle',{cx:XL(p.x),cy:Y(p.y),r:2.6,fill:jointCol});
+    el(svg,'circle',{cx:XL(b.head.x),cy:Y(b.head.y),r:b.head.r*sc,fill:'none',stroke:bodyCol,'stroke-width':2.8});
+    // Sitz-Label am Kopf
+    if(seats.length>1) txt(svg,XL(b.head.x),Y(b.head.y+b.head.r+3),seat.name,{'text-anchor':'middle',fill:bodyCol,class:'cap'});
+    // 6°-Referenz (nur Referenz, Auslage)
+    if(isRef && s.t<10 && !state.recovery){
+      el(svg,'line',{x1:XL(b.sh.x),y1:Y(b.sh.y),x2:XL(b.sh.x+70),y2:Y(b.sh.y-70*Math.tan(rad(6))),stroke:'var(--ok)','stroke-dasharray':'4 4','stroke-width':1.2});
+      txt(svg,XL(b.sh.x+42),Y(b.sh.y)+14,`Arme ${fmt(b.armAng,0)}° (Ziel ~6°)`,{fill:'var(--ok)'});
+    }
+  }
+  // Bug-seitigen Ruderer zuerst zeichnen, Schlagmann (ox=0) oben
+  [...seats].sort((a,b)=>a.ox-b.ox).forEach(seat=>drawSeat(seat,seat===primary));
+
+  // Körperdaten des bearbeiteten (primären) Ruderers + Vergleich mit Schlagmann
+  const b=primary.b, ref=seats.find(x=>x.ref)||seats[0], rb=ref.b;
+  const dcmp=(a,c,u='')=>{const dd=a-c; return seats.length>1&&!primary.ref ? ` (${dd>=0?'+':''}${fmt(dd,0)}${u})`:'';};
+  const rows=[
+    ['Körperwinkel',fmt(b.lam,0)+'° '+(b.lam>2?'Vorlage':b.lam<-2?'Rücklage':'aufrecht')],
+    ['Kniewinkel',fmt(b.knee,0)+'°'+dcmp(b.knee,rb.knee,'°')],
+    ['Ellbogen',fmt(b.arms[0].ang,0)+'°'],
+    ['Griffhöhe ü. W.',fmt(b.hand.y-wl,0)+' cm'],
+    ['Reichweite Auslage',fmt(refs.b0.hand.x,0)+' cm'+dcmp(refs.b0.hand.x, bodyRefs(dv,rb.r).b0.hand.x,'')],
+    ['Rollweg',fmt(refs.rollAt(b),0)+' %'],
+    ['Blatt',b.g>0.5?'flach':'aufgedreht'],
+  ];
+  $('bodyTab').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td class="v">${r[1]}</td></tr>`).join('');
+}
+
+/* ================= Phasen ================= */
+const PHASES=[
+  {n:'Auslage',t:0,rec:false},{n:'Vord. Zug',t:25,rec:false},{n:'Zugmitte',t:50,rec:false},
+  {n:'Hinterer Zug',t:75,rec:false},{n:'Ausheben',t:100,rec:false},{n:'Rückführung',t:50,rec:true},
+];
+function currentPhase(){
+  if(state.recovery) return 5;
+  const t=state.t;
+  return t<=10?0 : t<40?1 : t<62?2 : t<92?3 : 4;
+}
+function renderPhases(){
+  const cur=currentPhase();
+  $('phases').innerHTML=PHASES.map((p,i)=>
+    `<div class="phase${i===cur?' on':''}" data-i="${i}"><div class="n">${i+1}</div><div class="t">${p.n}</div></div>`).join('');
+  for(const d of document.querySelectorAll('.phase')) d.addEventListener('click',()=>{
+    const p=PHASES[+d.dataset.i];
+    stopPlay(); state.t=p.t; state.recovery=p.rec; render();
+  });
+  $('phN').textContent=(cur+1)+'/6';
+  $('phName').textContent=PHASES[cur].n;
+}
+
+/* ================= Einklappbare Karten (Fokus-Modus) ================= */
+let foldState={};
+try{ foldState=JSON.parse(localStorage.getItem('rudertrimm_fold')||'{}'); }catch(e){ foldState={}; }
+const isFolded=id=>!!foldState[id];
+function initFold(){
+  for(const card of document.querySelectorAll('.card[data-fold]')){
+    const id=card.dataset.fold;
+    card.classList.toggle('closed', isFolded(id));
+    card.querySelector('h2').addEventListener('click',()=>{
+      foldState[id]=!isFolded(id);
+      localStorage.setItem('rudertrimm_fold',JSON.stringify(foldState));
+      card.classList.toggle('closed', foldState[id]);
+      render();   // beim Aufklappen frisch zeichnen
+    });
+  }
+}
+
+/* ================= Ruderer-Sektion: Sitze, Name, Datenbank, Vitruv ================= */
+function isSingle(){ return !!(PRESETS[$('preset').value]||{}).single; }
+function renderSeatTabs(){
+  const single=isSingle();
+  if(single && state.editSeat!=='s1') state.editSeat='s1';
+  const tabs=[['s1','Platz 1 · Schlagmann']];
+  if(!single) tabs.push(['s2','Platz 2 · Vergleich']);
+  $('seattabs').innerHTML=tabs.map(([id,sub])=>
+    `<button class="${id} ${state.editSeat===id?'on':''}" data-seat="${id}">${state.crew[id].name}<span class="sub">${sub}</span></button>`).join('');
+  for(const btn of document.querySelectorAll('.seattabs button')) btn.addEventListener('click',()=>{
+    state.editSeat=btn.dataset.seat; buildControls(); render();
+  });
+  $('stepper').style.visibility = (!single && state.editSeat==='s2') ? 'visible':'hidden';
+  $('rowerName').value = activeRower().name;
+  $('stepLbl').textContent = state.dbIdx>=0 && state.db[state.dbIdx] ? state.db[state.dbIdx].name : 'Datenbank';
+  renderBMI();
+}
+function renderBMI(){
+  const r=activeRower(), h=SEG(r).height/100, bmi=r.weight/(h*h);
+  const cat = bmi<18.5?['lo','schlank'] : bmi<25?['ok','normal'] : bmi<30?['hi','kräftig'] : ['vhi','schwer'];
+  const el=$('bmiBadge');
+  el.className='bmi '+cat[0];
+  el.innerHTML=`BMI <b>${fmt(bmi,1)}</b> · ${cat[1]}`;
+  el.title=`Body-Mass-Index = ${fmt(r.weight,0)} kg / (${fmt(SEG(r).height/100,2)} m)²`;
+}
+$('rowerName').addEventListener('input',e=>{ activeRower().name=e.target.value; renderSeatTabs(); render(); });
+
+/* ---- Vitruv-Figur: Doppelpose in Kreis+Quadrat, Proportionen nach Ruderer-Profil ---- */
+function renderVitruv(r){
+  const W=220,Hd=224,cx=110,cy=112;
+  const seg=SEG(r), col = state.editSeat==='s1' ? '#e7dcc4' : 'var(--accent2)';
+  const sepia='rgba(196,156,92,.40)';
+  const height=seg.height;                 // Standhöhe = Beinlänge + Rumpflänge
+  const S = Math.max(seg.height, r.wingspan)*(160/215);   // Quadrat = größere von Höhe/Spannweite
+  const half=S/2, sqTop=cy-half, sqBot=cy+half;
+  const navelY=sqBot-0.615*S, R=S*0.575;   // Kreis um den Nabel (Da-Vinci-Verhältnis)
+  const svg=newSVG($('vitruv'),W,Hd);
+  // Quadrat + Kreis
+  el(svg,'circle',{cx,cy:navelY,r:R,fill:'none',stroke:sepia,'stroke-width':1});
+  el(svg,'rect',{x:cx-half,y:sqTop,width:S,height:S,fill:'none',stroke:sepia,'stroke-width':1});
+  // Vertikale Gelenkhöhen aus Segmenten (Ferse → Scheitel); Figur füllt die reale Standhöhe
+  const sum=seg.US+seg.OS+seg.T+seg.NECK+seg.HEAD, sw=S/Math.max(seg.height,r.wingspan);
+  const figTop=sqBot-height*sw;                 // Standhöhe kann kleiner als Quadrat sein
+  const yAt=v=>sqBot - v*sw;                     // v = cm ab Ferse
+  const yFoot=sqBot, yKnee=yAt(seg.US), yHip=yAt(seg.US+seg.OS),
+        ySh=yAt(seg.US+seg.OS+seg.T), yNeck=yAt(seg.US+seg.OS+seg.T+seg.NECK), yCrown=figTop;
+  const shH=r.SB/2*sw, hipH=shH*0.7, arm=(seg.OA+seg.UA)*sw;
+  const ink={stroke:col,fill:'none','stroke-linecap':'round','stroke-linejoin':'round'};
+  const faint={...ink,'stroke-width':1.6,opacity:.5};
+  const solid={...ink,'stroke-width':2.4};
+  // Rumpf-Silhouette (Schultern → Taille → Hüfte)
+  const waistY=lerp(ySh,yHip,0.55), waistH=hipH*0.82;
+  el(svg,'path',{d:`M${cx-shH},${ySh} C${cx-waistH},${waistY} ${cx-hipH},${yHip-6} ${cx-hipH},${yHip}`
+     +` L${cx+hipH},${yHip} C${cx+hipH},${yHip-6} ${cx+waistH},${waistY} ${cx+shH},${ySh} Z`,
+     fill:col,opacity:.16,stroke:col,'stroke-width':1.4});
+  // Hals + Kopf
+  el(svg,'line',{x1:cx,y1:ySh,x2:cx,y2:yNeck,...solid});
+  el(svg,'circle',{cx,cy:(yNeck+yCrown)/2,r:Math.max(6,(yNeck-yCrown)/2),...solid});
+  // --- ZWEITE Pose (dünn): Beine gespreizt auf den Kreis, Arme angehoben auf den Kreis ---
+  const legSpread=rad(23), footR={x:cx+R*Math.sin(legSpread), y:navelY+R*Math.cos(legSpread)};
+  const footL={x:cx-R*Math.sin(legSpread), y:navelY+R*Math.cos(legSpread)};
+  for(const F of [footR,footL]){ const sgn=Math.sign(F.x-cx)||1;
+    el(svg,'path',{d:`M${cx+sgn*hipH*0.5},${yHip} L${(cx+F.x)/2+sgn*4},${(yHip+F.y)/2} L${F.x},${F.y}`,...faint});
+    el(svg,'circle',{cx:F.x,cy:F.y,r:2,fill:col,opacity:.5}); }
+  const armRaise=rad(38), handU={x:cx+R*Math.sin(armRaise), y:navelY-R*Math.cos(armRaise)};
+  for(const sgn of [1,-1]){ const H2={x:cx+sgn*R*Math.sin(armRaise), y:navelY-R*Math.cos(armRaise)};
+    el(svg,'path',{d:`M${cx+sgn*shH*0.6},${ySh} L${cx+sgn*(shH+arm*0.5)},${ySh-arm*0.35} L${H2.x},${H2.y}`,...faint});
+    el(svg,'circle',{cx:H2.x,cy:H2.y,r:2,fill:col,opacity:.5}); }
+  // --- HAUPT-Pose (kräftig): Beine geschlossen zur Standlinie, Arme waagerecht zu den Quadratseiten ---
+  for(const sgn of [1,-1]){
+    el(svg,'path',{d:`M${cx+sgn*hipH*0.55},${yHip} L${cx+sgn*S*0.045},${yKnee} L${cx+sgn*S*0.06},${yFoot}`,...solid});
+    el(svg,'circle',{cx:cx+sgn*S*0.06,cy:yFoot,r:2.2,fill:col});
+  }
+  const elbowY=ySh+arm*0.06, handX=(r.wingspan/2)*sw;   // waagerechte Hand = halbe Spannweite
+  for(const sgn of [1,-1]){
+    el(svg,'path',{d:`M${cx+sgn*shH*0.9},${ySh} L${cx+sgn*(shH+arm*0.5)},${elbowY} L${cx+sgn*handX},${ySh}`,...solid});
+    el(svg,'circle',{cx:cx+sgn*handX,cy:ySh,r:2.2,fill:col});
+  }
+  // Label: abgeleitete Standhöhe + gemessene Spannweite
+  txt(svg,cx,Hd-5,`${fmt(seg.height,0)} cm groß · Span ${fmt(r.wingspan,0)} · ${fmt(r.weight,0)} kg`,{'text-anchor':'middle',fill:col,class:'cap'});
+}
+
+/* ---- Datenbank (localStorage + Datei) ---- */
+function loadDB(){ try{ state.db=(JSON.parse(localStorage.getItem('rudertrimm_db')||'[]')).map(migrate); }catch(e){ state.db=[]; } }
+function saveDB(){ localStorage.setItem('rudertrimm_db',JSON.stringify(state.db)); }
+function profileOf(r){ return {name:r.name,legLen:r.legLen,torsoLen:r.torsoLen,wingspan:r.wingspan,SB:r.SB,weight:r.weight,stemmX:r.stemmX}; }
+// Migration: alte Profile (Körpergröße + Feinjustage) → konkrete Maße
+function migrate(p){
+  if(p.legLen!=null) return p;
+  const H=p.hgt||185;
+  return {name:p.name||'Profil', legLen:Math.round(0.49*H), torsoLen:Math.round(0.51*H),
+          wingspan:Math.round(H*1.01), SB:p.SB||40, weight:p.weight||80, stemmX:p.stemmX||42};
+}
+function applyProfile(seatId,p){ Object.assign(state.crew[seatId],profileOf(migrate(p))); }
+function refreshDBSelect(){
+  $('dbSelect').innerHTML='<option value="">— Datenbank wählen —</option>'+
+    state.db.map((p,i)=>`<option value="${i}">${p.name} · ${fmt((p.legLen||0)+(p.torsoLen||0),0)} cm</option>`).join('');
+}
+$('dbSelect').addEventListener('change',e=>{ const i=+e.target.value;
+  if(state.db[i]){ applyProfile(state.editSeat,state.db[i]); state.dbIdx=i; buildControls(); renderSeatTabs(); render(); }});
+$('dbSaveAs').addEventListener('click',()=>{ const p=profileOf(activeRower());
+  state.db.push(p); state.dbIdx=state.db.length-1; saveDB(); refreshDBSelect(); $('dbSelect').value=state.dbIdx; });
+$('dbUpdate').addEventListener('click',()=>{ const i=+$('dbSelect').value;
+  if(state.db[i]){ state.db[i]=profileOf(activeRower()); saveDB(); refreshDBSelect(); $('dbSelect').value=i; }
+  else $('dbSaveAs').click(); });
+$('dbDelete').addEventListener('click',()=>{ const i=+$('dbSelect').value;
+  if(state.db[i]!==undefined){ state.db.splice(i,1); state.dbIdx=-1; saveDB(); refreshDBSelect(); } });
+$('dbExport').addEventListener('click',()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(state.db,null,2)],{type:'application/json'}));
+  a.download='ruderer-datenbank.json'; a.click(); URL.revokeObjectURL(a.href); });
+$('dbImport').addEventListener('click',()=>$('dbFile').click());
+$('dbFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>{ try{ const arr=JSON.parse(rd.result);
+    if(Array.isArray(arr)){ for(const p of arr) if(p&&(p.legLen||p.hgt)) state.db.push(profileOf(migrate(p))); saveDB(); refreshDBSelect(); } }catch(err){ alert('Datei nicht lesbar'); } };
+  rd.readAsText(f); e.target.value=''; });
+// „Weiterschalten": Ruderer 2 durch die Datenbank blättern (Schlagmann bleibt fix)
+function stepRower2(dir){
+  if(!state.db.length){ alert('Datenbank ist leer — erst Profile speichern.'); return; }
+  state.editSeat='s2';
+  state.dbIdx=((state.dbIdx<0?0:state.dbIdx)+dir+state.db.length)%state.db.length;
+  applyProfile('s2',state.db[state.dbIdx]);
+  buildControls(); renderSeatTabs(); render();
+}
+$('rPrev').addEventListener('click',()=>stepRower2(-1));
+$('rNext').addEventListener('click',()=>stepRower2(1));
+
+/* ================= Render & Animation ================= */
+const SEATGAP=128;   // Riggerabstand der Sitze (cm), Darstellung
+function buildSeats(){
+  const single=isSingle();
+  const ss=state.strokeSide;
+  const defs = single
+    ? [{r:state.crew.s1, ox:0, ref:true, side:ss, name:state.crew.s1.name}]
+    : [{r:state.crew.s1, ox:0, ref:true, side:ss, name:state.crew.s1.name},
+       {r:state.crew.s2, ox:-SEATGAP, ref:false, side:-ss, name:state.crew.s2.name}]; // Riemen: Gegenseite
+  // jeder Platz rechnet mit SEINEM Rigg (dv pro Ruderer)
+  return defs.map(d=>{ const dv=derived(d.r);
+    const b=solveBody(dv,state.t,state.recovery,d.r); b.arms=solveArms(dv,b,d.r);
+    return {...d,dv,b}; });
+}
+function render(){
+  const seats=buildSeats();
+  const primary=seats.find(x=>x.r===activeRower()) || seats[0];
+  const dv=primary.dv;
+  const refs=bodyRefs(dv,primary.r);
+  syncControls(); renderStatus(dv,refs,primary.r); renderSeatTabs();
+  if(!isFolded('rower')) renderVitruv(activeRower());
+  if(!isFolded('top'))   renderTop(dv,seats,primary);
+  if(!isFolded('cross')) renderCross(dv,primary);
+  if(!isFolded('side'))  renderSide(dv,seats,primary,refs);
+  renderPhases();
+}
+let playing=false, raf=null, t0=0;
+function stopPlay(){
+  if(!playing) return;
+  playing=false; cancelAnimationFrame(raf);
+  $('play').classList.remove('on'); $('play').textContent='▶ Durchzug starten';
+}
+$('play').addEventListener('click',()=>{
+  if(playing){ stopPlay(); return; }
+  playing=true; t0=performance.now();
+  $('play').classList.add('on'); $('play').textContent='⏸ Stopp';
+  raf=requestAnimationFrame(step);
+});
+$('speed').addEventListener('input',()=>{ $('speedV').textContent=fmt(parseFloat($('speed').value),2)+'×'; });
+function step(now){
+  if(!playing) return;
+  const period=2800/parseFloat($('speed').value);
+  const p=((now-t0)%period)/period;
+  // Ease-in-out je Segment: Geschwindigkeit 0 an Auslage & Endzug → weiche Bewegungsumkehr
+  if(p<0.45){ state.t=100*smooth(p/0.45); state.recovery=false; }
+  else { state.t=100*(1-smooth((p-0.45)/0.55)); state.recovery=true; }
+  render();
+  raf=requestAnimationFrame(step);
+}
+
+/* ================= Speichern / Laden / Export / Reset ================= */
+$('bSave').addEventListener('click',()=>{
+  localStorage.setItem('rudertrimm',JSON.stringify({state,preset:$('preset').value,blade:$('blade').value}));
+  const sp=$('bSave').querySelector('span');
+  sp.textContent='Gespeichert ✓'; setTimeout(()=>sp.textContent='Speichern',1400);
+});
+$('bLoad').addEventListener('click',()=>{
+  const raw=localStorage.getItem('rudertrimm'); if(!raw) return;
+  const j=JSON.parse(raw);
+  $('preset').value=j.preset; $('blade').value=j.blade;
+  Object.assign(state,j.state); state.recovery=false;
+  // Migration: alte Speicherstände hatten das Rigg global — in die Plätze übernehmen
+  for(const k of ['s1','s2']){
+    const r=state.crew[k]||{};
+    state.crew[k]=Object.assign(mkRower(r.name||(k==='s1'?'Schlagmann':'Ruderer 2')),
+      ['DA','IH','L','d','handGap','a','anlage','aussen','stemmW','rollL','rueh']
+        .reduce((o,key)=>(j.state[key]!=null?(o[key]=j.state[key]):0,o),{}), r);
+  }
+  buildControls(); updateRig(); render();
+});
+$('bExport').addEventListener('click',()=>{
+  const r=activeRower(), dv=derived(r), refs=bodyRefs(dv,r);
+  const data={...state, abgeleitet:{uebergriff_cm:+dv.U.toFixed(1), aussenhebel_cm:+dv.AH.toFixed(1),
+    hebelverhaeltnis:+(dv.AH/r.IH).toFixed(2), schlagweite_grad:dv.SW,
+    dollenhoehe_ueber_wasser_cm:+dv.dWL.toFixed(1),
+    knie_bei_90grad:+refs.b90.knee.toFixed(0), armwinkel_auslage_grad:+refs.b0.armAng.toFixed(1)},
+    preset:$('preset').value, blatt:$('blade').value, quelle:'DRV-Trimmhandbuch'};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download='rudertrimm-'+$('preset').value+'.json'; a.click(); URL.revokeObjectURL(a.href);
+});
+$('bReset').addEventListener('click',()=>{ stopPlay(); applyPreset(); });
+
+loadDB(); refreshDBSelect(); loadBoats(); refreshBoatSelect(); buildControls(); updateRig(); updateMode(); initFold(); render();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>
