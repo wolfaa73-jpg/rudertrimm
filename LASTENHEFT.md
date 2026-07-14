@@ -1,13 +1,13 @@
 # Lastenheft — Ruderpositions-Visualisierer
 
-**Stand:** 10. Juli 2026 · **Datei:** `index.html` (Single-File-App, kein Build, keine Abhängigkeiten)
+**Stand:** 12. Juli 2026 · **Datei:** `index.html` (Single-File-App, kein Build, keine Abhängigkeiten)
 **Fachliche Quelle:** DRV-Trimmhandbuch, Kap. 5 „Das Trimmen der Boote" (Ellerbrake/Filter · Nolte · v. Lingelsheim · Piesik)
 
 Legende: ✅ umgesetzt · 🔧 Umbau nötig · 🆕 neu angefordert · ❓ offen
 
-**Fortschritt:** Abschnitte 1–5 stehen (Körpermodell + Blätter am 10.7. fertig, verifiziert). Abschnitt 6 (Ruderer-Sektion,
-Zwei-Ruderer-Vergleich, Datenbank) ist die nächste Ausbaustufe. Veröffentlichung (jetzt Abschnitt 7) kann als **v1.0 vor**
-Abschnitt 6 erfolgen oder gebündelt als **v1.1 danach** — Reihenfolge offen (siehe Abschnitt 9).
+**Fortschritt:** Abschnitte 1–6 stehen. **v1.0 veröffentlicht** (12.7.2026): PWA + GitHub Pages,
+öffentliches Repo `wolfaa73-jpg/rudertrimm`, live unter https://wolfaa73-jpg.github.io/rudertrimm/
+(siehe Abschnitt 7).
 
 ---
 
@@ -143,12 +143,52 @@ Personen-Profile (Datenbank) tragen Körper + Fa; Platz-Rigg bleibt beim Sitz. P
 4. Profil einem Slot zuweisen: **Platz 1 (Schlagmann)** / **Ruderer 2**.
 5. **Keine echten Personendaten ins veröffentlichte Repo** — Profile bleiben lokal beim Nutzer (Datenschutz).
 
-## 7. Veröffentlichung
+### 6F · Draufsicht Riemen: 2. Ruderer vollwertig + Ampelzonen ✅ *(14.7.2026)*
+1. **2. Ruderer bekommt dieselben Referenzen wie der Schlagmann**, an seiner eigenen Dolle gespiegelt:
+   eigene Orthogonalstellungs-Linie, eigener Auslage-Keil, eigener Schlagbogen (Blatt-/Griffweg) —
+   vorher nur für den Referenz-Sitz gezeichnet.
+2. **Rot-/Gelb-/Grün-Zonen** im Auslage-Keil, gekoppelt an dieselben Ampel-Schwellen wie die
+   Statuskarte (Skull 65–75° ok / ±5° Toleranz gelb / außerhalb rot; Riemen 50–60° analog) — macht die
+   Winkel zwischen den Plätzen visuell vergleichbar, nicht nur als Zahl.
+3. Legende um die drei Zonenfarben ergänzt.
 
-1. **PWA:** Web-App-Manifest (Name, Icon, Vollbild), Service Worker mit Komplett-Cache → offline nach Erstbesuch; Home-Bildschirm-Installation auf iPad/Android/Desktop.
-2. **Hosting:** öffentliches GitHub-Repo + GitHub Pages (kostenlos, HTTPS); Weitergabe per Link/QR-Code.
+### 6G · Fa (Stemmbrett längs) begrenzt die Auslage real ✅ *(14.7.2026)*
+Physikalisch korrekt gekoppelt: das Stemmbrett bestimmt, wie weit der Körper beim Einsatz überhaupt
+nach vorn reicht — das begrenzt den real erreichbaren Auslagewinkel unabhängig vom phiA-Regler.
+- **Automatische Kappung** (gewählte Variante): `maxReachableAuslage(dv,r)` bisektiert den größten
+  Auslagewinkel, den Fa + Körpermaße noch erreichbar machen (Overreach-Flag der Auslage-Pose als
+  Testkriterium). Der tatsächlich gezeichnete/genutzte Winkel = `min(phiA-Regler, reichbares Maximum)`,
+  pro Sitz einzeln (unterschiedliche Körper am selben Boot können unterschiedlich stark gekappt sein).
+- Sichtbar in Draufsicht (schmalerer Keil + Label „Fa-Limit, Ziel X°" in Warnfarbe), Statuskarte
+  „Auslagewinkel" (⚠-Marker + Hinweistext) und überall sonst, wo phiA in die Kinematik einfließt
+  (`derived`, `solveBody`, `solveArms`, `bodyRefs` nehmen jetzt ein optionales `phiAeff`).
+- Verifiziert: Richtung stimmt (kleineres Fa → Hüfte beim Einsatz weiter bugwärts über den Dollenstift
+  hinaus → schwerer erreichbar); realistischer Auslösefall ist ein kleinerer Ruderer (kurze Spannweite)
+  bei knappem Fa, nicht der Normalfall bei Standardmaßen.
+- Nebenbei behobener Bug: der Seitenansicht-Vergleich „Reichweite Auslage" rechnete mit dem Rigg des
+  gerade bearbeiteten Platzes statt dem des Referenz-Platzes (`bodyRefs(dv,rb.r)` → `bodyRefs(ref.dv,ref.r)`).
+
+### 6H · Kraftausgleich zwischen den Plätzen ✅ *(14.7.2026)*
+Neues Feld „Hebelverhältnis" in der Ruderer-Sektion (sichtbar sobald 2 Plätze vorhanden, also bei
+allen Bootsklassen außer 1x): zeigt Außenhebel⁄Innenhebel für Schlagmann und Ruderer 2 nebeneinander
+mit Δ-Ampel, plus Knopf **„⚖ Angleichen"**. Physikalische Begründung: bei gleichem Blattwiderstand ist
+die nötige Griffkraft ∝ Außenhebel⁄Innenhebel (Drehmomentgleichgewicht um den Dollenstift) — gleiches
+Verhältnis ⇒ rechnerisch gleiche Griffkraft. Angleichen löst `IH₂ = L₂/(Verhältnis₁+1)` (Ruderlänge von
+Platz 2 bleibt, nur sein Innenhebel wird angepasst, auf 0,5 cm gerundet, slider-geclampt).
+
+## 7. Veröffentlichung ✅ *(v1.0 live seit 12.7.2026)*
+
+1. **PWA:** ✅ Web-App-Manifest (`manifest.json`, Icons aus dem Vereinswappen als PNG generiert),
+   Service Worker (`sw.js`, network-first für HTML/Cache-first für Assets) → offline nach Erstbesuch;
+   Home-Bildschirm-Installation auf iPad/Android/Desktop. Verifiziert: SW aktiv, alle Assets gecacht.
+2. **Hosting:** ✅ Öffentliches GitHub-Repo [`wolfaa73-jpg/rudertrimm`](https://github.com/wolfaa73-jpg/rudertrimm),
+   GitHub Pages (main-Branch, `/`) → **https://wolfaa73-jpg.github.io/rudertrimm/** (HTTPS, verifiziert live,
+   alle 7 Statuskarten grün). Weitergabe per Link/QR-Code.
 3. **Privat bleibt:** Tailscale-/LAN-Server auf dem Mac mini als Entwicklungs-Spiegel (Port 8943).
-4. Keine personenbezogenen Daten in Repo/App; Quellenangabe DRV-Trimmhandbuch im Footer.
+4. ✅ Keine personenbezogenen Daten in Repo/App (Ruderer-/Boots-Profile nur localStorage im Browser
+   der Nutzer); Quellenangabe DRV-Trimmhandbuch + FISA-Survey in README/Footer.
+5. **Updates:** Änderungen an `index.html`/`sw.js` committen + `git push` → GitHub Pages baut automatisch
+   neu; Service Worker zieht sich die neue Version beim nächsten Online-Aufruf (network-first).
 
 ## 8. Nicht-Ziele / bewusste Entscheidungen
 

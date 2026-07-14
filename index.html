@@ -109,6 +109,15 @@
   .bmi b{font-size:14px}
   .bmi.lo{color:#63b3ff; border-color:#2e5578} .bmi.ok{color:var(--ok); border-color:#2b6b3f}
   .bmi.hi{color:var(--warn); border-color:#5c4a1d} .bmi.vhi{color:var(--bad); border-color:#6b2d2b}
+  .forcecmp{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:10px}
+  .forcecmp .fc-title{font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:5px}
+  .forcecmp .fc-vals{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:12.5px}
+  .forcecmp .fc-vals b{font-variant-numeric:tabular-nums}
+  .forcecmp .fc-delta{color:var(--ok); font-weight:650}
+  .forcecmp .fc-delta.warn{color:var(--warn)} .forcecmp .fc-delta.bad{color:var(--bad)}
+  .forcecmp button{margin-left:auto; background:var(--accent); color:#03192e; border:0; border-radius:6px; padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap}
+  .forcecmp button:hover{filter:brightness(1.12)}
+  .forcecmp button:disabled{opacity:.4; cursor:default; filter:none}
   .stepper{display:flex; align-items:center; gap:2px; border:1px solid var(--line); border-radius:8px; overflow:hidden}
   .stepper button{background:var(--panel2); color:var(--fg); border:0; padding:0 10px; font-size:13px; cursor:pointer; align-self:stretch}
   .stepper button:hover{background:var(--accent); color:#03192e}
@@ -272,6 +281,15 @@
       <div class="vitruv-wrap"><div id="vitruv"></div></div>
       <div class="roweredit">
         <div class="seattabs" id="seattabs"></div>
+        <div class="forcecmp" id="forceCmp" style="display:none">
+          <div class="fc-title">Hebelverhältnis (Griffkraft bei gleichem Blattwiderstand)</div>
+          <div class="fc-vals">
+            <span id="fcS1"></span>
+            <span id="fcS2"></span>
+            <span class="fc-delta" id="fcDelta"></span>
+            <button id="fcEqualize" title="Innenhebel von Ruderer 2 so anpassen, dass sein Hebelverhältnis dem Schlagmann entspricht">⚖ Angleichen</button>
+          </div>
+        </div>
         <div class="namerow">
           <input id="rowerName" type="text" placeholder="Name des Ruderers" autocomplete="off">
           <span class="bmi" id="bmiBadge" title="Body-Mass-Index">BMI –</span>
@@ -555,17 +573,18 @@ $('boatFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) r
   rd.readAsText(f); e.target.value=''; });
 
 /* ---------------- Rigg: abgeleitete Größen — pro Platz/Ruderer ---------------- */
-function derived(r){
+function derived(r,phiAeff){
   const s=state, skull=s.rig==='skull';
   r = r || activeRower();
+  const phiA = phiAeff ?? s.phiA;               // ggf. auf Fa-Reichweite gekappter Auslagewinkel
   const inb=r.IH+r.d, outb=r.L-r.IH-r.d;
   const U = skull? 2*inb-r.DA : inb-r.DA;
-  const AH=r.L-r.IH, SW=s.phiA+s.phiR, antV=100*s.phiA/SW;
+  const AH=r.L-r.IH, SW=phiA+s.phiR, antV=100*phiA/SW;
   const dWL=r.a+s.c-s.kg*0.1;
   const IHsoll= skull? r.DA/2+8 : r.DA+30;
-  const theta=s.phiA-s.t/100*SW;
+  const theta=phiA-s.t/100*SW;
   const DAr= skull? r.DA/2 : r.DA;
-  return {skull,inb,outb,U,AH,SW,antV,dWL,IHsoll,theta,DA:r.DA,DAr};
+  return {skull,inb,outb,U,AH,SW,antV,dWL,IHsoll,theta,DA:r.DA,DAr,phiA};
 }
 function band(v,gLo,gHi,yPad){
   if(v>=gLo&&v<=gHi) return 'ok';
@@ -627,12 +646,13 @@ function ik2(A,B,l1,l2,pickLower){
   const ang=Math.acos(clamp((l1*l1+l2*l2-Dc*Dc)/(2*l1*l2),-1,1));
   return {J, ang};
 }
-function solveBody(dv, tPct, rec, r){
+function solveBody(dv, tPct, rec, r, phiAeff){
   const s=state, seg=SEG(r);
   const t=clamp(tPct,0,100)/100;
   const wl=s.kg*0.1, pinY=s.c+r.a;
   const g=featherG(tPct,rec), lift=bladeLiftF(tPct,rec);  // Drehung & Höhe entkoppelt (senkrechtes Eintauchen)
-  const SW=s.phiA+s.phiR, theta=rad(s.phiA - t*SW);
+  const phiA=phiAeff ?? s.phiA;          // ggf. auf Fa-Reichweite gekappter Auslagewinkel
+  const SW=phiA+s.phiR, theta=rad(phiA - t*SW);
   const foot={x:r.stemmX, y:s.c-18};
   const hipY=s.c+4, dyLeg=hipY-foot.y;
   // Hand am Griffende (Blatt am Wasser bzw. ausgehoben)
@@ -746,7 +766,7 @@ function solveArms(dv, b, r){
       arms.push(mk(S,W,sd));
     }
   } else {
-    const rho=rad(16)*clamp(b.theta/Math.max(s.phiA,1),-0.5,1);
+    const rho=rad(16)*clamp(b.theta/Math.max(dv.phiA,1),-0.5,1);
     const zC=Math.cos(rho)*SB/2, xR=Math.sin(rho)*SB/2;
     const W1={x:b.hand.x, y:b.hand.y, z:DAr-dv.inb*Math.cos(th)};
     const P={x:0, y:b.pinY, z:DAr};
@@ -762,12 +782,22 @@ function solveArms(dv, b, r){
 }
 // Referenzposen (Auslage / Endzug / 90°-Stellung) für Checks & Rollweg
 function bodyRefs(dv, r){
-  const b0=solveBody(dv,0,false,r), b1=solveBody(dv,100,false,r);
-  const t90=clamp(state.phiA/(state.phiA+state.phiR)*100,0,100);
-  const b90=solveBody(dv,t90,false,r);
+  const phiA=dv.phiA ?? state.phiA;      // dieselbe (ggf. gekappte) Auslage wie beim Zeichnen
+  const b0=solveBody(dv,0,false,r,phiA), b1=solveBody(dv,100,false,r,phiA);
+  const t90=clamp(phiA/(phiA+state.phiR)*100,0,100);
+  const b90=solveBody(dv,t90,false,r,phiA);
   const span=b0.hip.x-b1.hip.x;
   const rollAt=b=> span>1 ? clamp((b0.hip.x-b.hip.x)/span*100,0,100) : 0;
   return {b0,b1,b90,t90,rollAt};
+}
+// Maximal erreichbarer Auslagewinkel für dieses Rigg+Körper (Fa/Beinlänge/Armlänge begrenzen die Reichweite).
+// Bisektion auf dem Overreach-Flag der Auslage-Pose (monoton: größerer Winkel = weniger erreichbar).
+function maxReachableAuslage(dv, r){
+  let lo=30, hi=88;
+  if(!solveBody(dv,0,false,r,hi).overreach) return hi;
+  for(let i=0;i<16;i++){ const mid=(lo+hi)/2;
+    if(solveBody(dv,0,false,r,mid).overreach) hi=mid; else lo=mid; }
+  return lo;
 }
 
 /* ---------------- Statuskarten & Chips ---------------- */
@@ -794,7 +824,10 @@ function renderStatus(dv,refs,r){
   }
   const cards=[
     {n:'Übergriff', v:fmt(dv.U)+' cm', st:band(dv.U,uLo,uHi,2), rng:`${uLo} – ${uHi} cm`},
-    {n:'Auslagewinkel', v:fmt(s.phiA)+'°', st:dv.skull?band(s.phiA,65,75,5):band(s.phiA,50,60,5), rng:dv.skull?'65 – 75°':'~54° (Riemen)'},
+    (()=>{ const capped=dv.phiA<s.phiA-0.05;
+      return {n:'Auslagewinkel', v:fmt(dv.phiA)+'°'+(capped?' ⚠':''),
+        st:dv.skull?band(dv.phiA,65,75,5):band(dv.phiA,50,60,5),
+        rng:(dv.skull?'65 – 75°':'~54° (Riemen)')+(capped?` · Fa begrenzt auf ${fmt(dv.phiA)}° (Ziel ${fmt(s.phiA)}°)`:'')}; })(),
     {n:'Schlagweite', v:fmt(dv.SW)+'°', st:band(dv.SW,dv.skull?105:85,dv.skull?115:95,5), rng:dv.skull?'110° (Skull)':'90° (Riemen)'},
     dolleCard,
     {n:'Dollen-Neigung', v:fmt(r.anlage)+'°', st:band(r.anlage,3,5,2), rng:'Norm 4° (±4°)'},
@@ -895,7 +928,6 @@ function renderTop(dv,seats,primary){
   // Zugbereich
   el(svg,'rect',{x:X(-240),y:Y(body.SB/2),width:480*sc,height:body.SB*sc,fill:'rgba(46,204,113,.07)',stroke:'rgba(46,204,113,.3)','stroke-dasharray':'3 4'});
   el(svg,'line',{x1:X(-275),y1:cy,x2:X(275),y2:cy,stroke:'var(--fg-mut)','stroke-dasharray':'6 5'});
-  el(svg,'line',{x1:cx,y1:Y(lat-4),x2:cx,y2:Y(-lat+4),stroke:'#fff','stroke-dasharray':'5 5',opacity:.45});
   txt(svg,cx,16,'ORTHOGONALSTELLUNG',{class:'cap','text-anchor':'middle',fill:'var(--fg)'});
   txt(svg,X(-272),cy-6,'Bug',{class:'cap'}); txt(svg,X(244),cy-6,'Heck',{class:'cap','text-anchor':'end'});
 
@@ -906,28 +938,53 @@ function renderTop(dv,seats,primary){
   el(svg,'rect',{x:X(-65),y:Y(9),width:120*sc,height:18*sc,rx:8,fill:'#0b1420',stroke:'#42597a','stroke-width':.8});
 
   const RS=dv.skull?1:primary.side;                     // Referenzseite (Schlagmann)
-  const arcSides=dv.skull?[1,-1]:[RS];
 
-  // Auslage-Keil + Schlagbogen + Griffweg — für den Referenz-Sitz
-  {
-    const pv0=RS*DAr, rk=rOut*0.92, aC=rad(s.phiA);
-    let kd=`M${X(0)},${Y(pv0)} `;
-    for(let i=0;i<=20;i++){ const a=rad(lerp(0,s.phiA,i/20)); kd+='L'+X(-rk*Math.sin(a))+','+Y(pv0+RS*rk*Math.cos(a))+' '; }
-    el(svg,'path',{d:kd+'Z',fill:'rgba(46,204,113,.13)',stroke:'rgba(46,204,113,.5)','stroke-width':1});
-    txt(svg,X(-rOut*0.7*Math.sin(aC))-8,Y(pv0+RS*rOut*0.75*Math.cos(aC))-6,`Auslagewinkel ${fmt(s.phiA)}°`,{fill:'var(--ok)',class:'cap','text-anchor':'end'});
+  // Ampel-Zonen für den Auslagewinkel (identische Schwellen wie die Statuskarte oben),
+  // je Sitz an dessen eigener Dolle gespiegelt — macht die Winkel zwischen den Plätzen vergleichbar.
+  const angBand = dv.skull ? {lo:65,hi:75,pad:5} : {lo:50,hi:60,pad:5};
+  const zoneMax = Math.max(angBand.hi+angBand.pad+6, s.phiA+6);
+  const zones = [
+    [0, Math.max(0,angBand.lo-angBand.pad), 'rgba(248,81,73,.09)','rgba(248,81,73,.3)'],
+    [Math.max(0,angBand.lo-angBand.pad), angBand.lo, 'rgba(240,169,46,.12)','rgba(240,169,46,.4)'],
+    [angBand.lo, angBand.hi, 'rgba(46,204,113,.14)','rgba(46,204,113,.5)'],
+    [angBand.hi, angBand.hi+angBand.pad, 'rgba(240,169,46,.12)','rgba(240,169,46,.4)'],
+    [angBand.hi+angBand.pad, zoneMax, 'rgba(248,81,73,.09)','rgba(248,81,73,.3)'],
+  ];
+  function sectorPath(ox,pv,sd,rk,aLoDeg,aHiDeg){
+    const N=16; let d=`M${X(ox)},${Y(pv)} `;
+    for(let i=0;i<=N;i++){ const a=rad(lerp(aLoDeg,aHiDeg,i/N));
+      d+=`L${X(-rk*Math.sin(a)+ox)},${Y(pv+sd*rk*Math.cos(a))} `; }
+    return d+'Z';
   }
-  for(const sd of arcSides){
-    const pv=sd*DAr;
-    for(const [r,col,sgn] of [[rOut,'rgba(63,162,255,.55)',1],[rIn,'rgba(232,176,75,.5)',-1]]){
-      let dstr='';
-      for(let i=0;i<=44;i++){ const a=rad(lerp(s.phiA,-s.phiR,i/44));
-        dstr+=(i?'L':'M')+X(-sgn*r*Math.sin(a))+','+Y(pv+sd*sgn*r*Math.cos(a))+' '; }
-      el(svg,'path',{d:dstr,fill:'none',stroke:col,'stroke-width':1.3,'stroke-dasharray':'5 4'});
+  // ---- pro Sitz: Ampelzonen, Schlagbogen, Auslage/Rücklage-Grenzen, eigene Orthogonale ----
+  function drawSeatArcs(seat,isRef){
+    const ox=seat.ox, sdv=seat.dv, sOut=sdv.outb*K, sIn=sdv.inb, sDAr=sdv.DAr;
+    const seatSides=dv.skull?[1,-1]:[seat.side];
+    const rk=sOut*0.92;
+    const phiASeat=sdv.phiA;                 // eigene, ggf. durch Fa/Körpermaße gekappte Auslage
+    el(svg,'line',{x1:X(ox),y1:Y(lat-4),x2:X(ox),y2:Y(-lat+4),stroke:'#fff','stroke-dasharray':'5 5',opacity:isRef?.45:.28});
+    for(const sd of seatSides){
+      const pv=sd*sDAr;
+      for(const [aLo,aHi,fill,stroke] of zones){
+        if(aHi<=aLo) continue;
+        el(svg,'path',{d:sectorPath(ox,pv,sd,rk,aLo,aHi),fill,stroke,'stroke-width':.75});
+      }
+      for(const [r,col,sgn] of [[sOut,'rgba(63,162,255,.55)',1],[sIn,'rgba(232,176,75,.5)',-1]]){
+        let dstr='';
+        for(let i=0;i<=44;i++){ const a=rad(lerp(phiASeat,-s.phiR,i/44));
+          dstr+=(i?'L':'M')+X(-sgn*r*Math.sin(a)+ox)+','+Y(pv+sd*sgn*r*Math.cos(a))+' '; }
+        el(svg,'path',{d:dstr,fill:'none',stroke:col,'stroke-width':1.3,'stroke-dasharray':'5 4'});
+      }
+      for(const A of [phiASeat,-s.phiR]){ const a=rad(A);
+        el(svg,'line',{x1:X(ox),y1:Y(pv),x2:X(-rk*Math.sin(a)+ox),y2:Y(pv+sd*rk*Math.cos(a)),stroke:'var(--fg-mut)','stroke-width':.8,'stroke-dasharray':'2 4'}); }
     }
-    for(const A of [s.phiA,-s.phiR]){ const a=rad(A);
-      el(svg,'line',{x1:X(0),y1:Y(pv),x2:X(-rOut*Math.sin(a)),y2:Y(pv+sd*rOut*Math.cos(a)),stroke:'var(--fg-mut)','stroke-width':.8,'stroke-dasharray':'2 4'}); }
+    const lblSide=seatSides[0], pvLbl=lblSide*sDAr;
+    const cappedTxt=seat.capped?` (Fa-Limit, Ziel ${fmt(s.phiA)}°)`:'';
+    const lblText=(seats.length>1 ? `${seat.name}: ${fmt(phiASeat)}°` : `Auslagewinkel ${fmt(phiASeat)}°`)+cappedTxt;
+    txt(svg,X(-rk*0.7*Math.sin(rad(phiASeat))+ox)-8,Y(pvLbl+lblSide*rk*0.75*Math.cos(rad(phiASeat)))-6,
+      lblText,{fill:seat.capped?'var(--warn)':'var(--ok)',class:'cap','text-anchor':'end'});
+    txt(svg,X(ox)+8,Y(pvLbl)-8,'Dolle',{class:'cap'});
   }
-  txt(svg,X(0)+8,Y(RS*DAr)-8,'Dolle',{class:'cap'});
 
   // ---- ein Sitz: Dollen + Ruder + Ruderer, längs um ox versetzt ----
   function drawSeatTop(seat,isRef){
@@ -959,7 +1016,9 @@ function renderTop(dv,seats,primary){
     }
     if(seats.length>1) txt(svg,XL(b.head.x),cy-b.head.r*sc-4,seat.name,{'text-anchor':'middle',fill:bodyCol,class:'cap'});
   }
-  [...seats].sort((a,b)=>a.ox-b.ox).forEach(seat=>drawSeatTop(seat,seat===primary));
+  const sortedSeats=[...seats].sort((a,b)=>a.ox-b.ox);
+  sortedSeats.forEach(seat=>drawSeatArcs(seat,seat===primary));
+  sortedSeats.forEach(seat=>drawSeatTop(seat,seat===primary));
 
   // Übergriff-Maß
   if(dv.U>0){
@@ -970,10 +1029,16 @@ function renderTop(dv,seats,primary){
 
   const lx=W-208, ly=26;
   const leg=[['rgba(63,162,255,.8)','Schlagbogen (Blattweg)','5 4'],['rgba(232,176,75,.8)','Griffweg','5 4'],
-             ['rgba(46,204,113,.8)','Zugbereich / Auslage','3 4'],['#ffffff88','Orthogonalstellung','5 5']];
+             ['rgba(46,204,113,.8)','Zugbereich','3 4'],['#ffffff88','Orthogonalstellung','5 5']];
   leg.forEach((L,i)=>{
     el(svg,'line',{x1:lx,y1:ly+i*17,x2:lx+26,y2:ly+i*17,stroke:L[0],'stroke-width':2,'stroke-dasharray':L[2]});
     txt(svg,lx+33,ly+i*17+4,L[1],{});
+  });
+  const legZ=[['rgba(46,204,113,.6)','Auslagewinkel optimal'],['rgba(240,169,46,.6)','… Toleranz'],['rgba(248,81,73,.6)','… außerhalb']];
+  const zy=ly+leg.length*17+6;
+  legZ.forEach((L,i)=>{
+    el(svg,'rect',{x:lx,y:zy+i*15-6,width:14,height:9,fill:L[0],stroke:'none'});
+    txt(svg,lx+21,zy+i*15+1,L[1],{});
   });
 }
 
@@ -1173,7 +1238,7 @@ function renderSide(dv,seats,primary,refs){
     ['Kniewinkel',fmt(b.knee,0)+'°'+dcmp(b.knee,rb.knee,'°')],
     ['Ellbogen',fmt(b.arms[0].ang,0)+'°'],
     ['Griffhöhe ü. W.',fmt(b.hand.y-wl,0)+' cm'],
-    ['Reichweite Auslage',fmt(refs.b0.hand.x,0)+' cm'+dcmp(refs.b0.hand.x, bodyRefs(dv,rb.r).b0.hand.x,'')],
+    ['Reichweite Auslage',fmt(refs.b0.hand.x,0)+' cm'+dcmp(refs.b0.hand.x, bodyRefs(ref.dv,ref.r).b0.hand.x,'')],
     ['Rollweg',fmt(refs.rollAt(b),0)+' %'],
     ['Blatt',b.g>0.5?'flach':'aufgedreht'],
   ];
@@ -1245,6 +1310,41 @@ function renderBMI(){
   el.title=`Body-Mass-Index = ${fmt(r.weight,0)} kg / (${fmt(SEG(r).height/100,2)} m)²`;
 }
 $('rowerName').addEventListener('input',e=>{ activeRower().name=e.target.value; renderSeatTabs(); render(); });
+
+/* ---- Kraftvergleich: Hebelverhältnis (Außenhebel/Innenhebel) zwischen Schlagmann & Ruderer 2.
+   Bei gleichem Blattwiderstand ist die nötige Griffkraft ∝ Außenhebel/Innenhebel (Drehmoment-
+   gleichgewicht um den Dollenstift) — gleiches Verhältnis = rechnerisch gleiche Kraft am Griff. ---- */
+function renderForceCompare(seats){
+  const box=$('forceCmp');
+  if(seats.length<2){ box.style.display='none'; return; }
+  box.style.display='';
+  const ref=seats.find(x=>x.ref), other=seats.find(x=>!x.ref);
+  const ratio=seat=>seat.dv.AH/seat.r.IH;
+  const rRef=ratio(ref), rOther=ratio(other);
+  const d=rOther-rRef;
+  $('fcS1').innerHTML=`${ref.name} <b>1 : ${fmt(rRef,2)}</b>`;
+  $('fcS2').innerHTML=`${other.name} <b>1 : ${fmt(rOther,2)}</b>`;
+  const dEl=$('fcDelta');
+  const closeEnough=Math.abs(d)<=0.03;
+  dEl.textContent=closeEnough ? '✓ angeglichen' : `Δ ${d>0?'+':''}${fmt(d,2)}`;
+  dEl.className='fc-delta '+(closeEnough?'':Math.abs(d)<=0.1?'warn':'bad');
+  $('fcEqualize').disabled=closeEnough;
+  $('fcEqualize').title=closeEnough
+    ? 'Hebelverhältnisse stimmen bereits überein'
+    : `Innenhebel von ${other.name} so anpassen, dass sein Hebelverhältnis dem von ${ref.name} entspricht (Ruderlänge bleibt)`;
+}
+$('fcEqualize').addEventListener('click',()=>{
+  const seats=buildSeats(), ref=seats.find(x=>x.ref), other=seats.find(x=>!x.ref);
+  if(!ref||!other) return;
+  const targetRatio=ref.dv.AH/ref.r.IH;              // AH/IH = (L-IH)/IH = L/IH - 1
+  const rng=RANGES[state.rig].IH;
+  let ihNew=other.r.L/(targetRatio+1);
+  ihNew=Math.round(ihNew*2)/2;                       // auf 0,5 cm runden
+  ihNew=clamp(ihNew,rng[0],rng[1]);
+  other.r.IH=ihNew;
+  if(state.editSeat==='s2') buildControls();   // Slider-Anzeige auffrischen, falls Platz 2 gerade offen
+  render();
+});
 
 /* ---- Vitruv-Figur: Doppelpose in Kreis+Quadrat, Proportionen nach Ruderer-Profil ---- */
 function renderVitruv(r){
@@ -1355,17 +1455,22 @@ function buildSeats(){
     ? [{r:state.crew.s1, ox:0, ref:true, side:ss, name:state.crew.s1.name}]
     : [{r:state.crew.s1, ox:0, ref:true, side:ss, name:state.crew.s1.name},
        {r:state.crew.s2, ox:-SEATGAP, ref:false, side:-ss, name:state.crew.s2.name}]; // Riemen: Gegenseite
-  // jeder Platz rechnet mit SEINEM Rigg (dv pro Ruderer)
-  return defs.map(d=>{ const dv=derived(d.r);
-    const b=solveBody(dv,state.t,state.recovery,d.r); b.arms=solveArms(dv,b,d.r);
-    return {...d,dv,b}; });
+  // jeder Platz rechnet mit SEINEM Rigg (dv pro Ruderer) UND seiner eigenen, durch
+  // Fa/Körpermaße begrenzten Auslage — Stemmbrett verschieben verändert sichtbar die Auslage.
+  return defs.map(d=>{
+    const dvRaw=derived(d.r);                          // Hebelgeometrie, phiA-unabhängig
+    const reachMax=maxReachableAuslage(dvRaw,d.r);
+    const effPhiA=Math.min(state.phiA,reachMax);
+    const dv=derived(d.r,effPhiA);
+    const b=solveBody(dv,state.t,state.recovery,d.r,effPhiA); b.arms=solveArms(dv,b,d.r);
+    return {...d,dv,b,reachMax,capped:reachMax<state.phiA-0.05}; });
 }
 function render(){
   const seats=buildSeats();
   const primary=seats.find(x=>x.r===activeRower()) || seats[0];
   const dv=primary.dv;
   const refs=bodyRefs(dv,primary.r);
-  syncControls(); renderStatus(dv,refs,primary.r); renderSeatTabs();
+  syncControls(); renderStatus(dv,refs,primary.r); renderSeatTabs(); renderForceCompare(seats);
   if(!isFolded('rower')) renderVitruv(activeRower());
   if(!isFolded('top'))   renderTop(dv,seats,primary);
   if(!isFolded('cross')) renderCross(dv,primary);
@@ -1417,7 +1522,8 @@ $('bLoad').addEventListener('click',()=>{
   buildControls(); updateRig(); render();
 });
 $('bExport').addEventListener('click',()=>{
-  const r=activeRower(), dv=derived(r), refs=bodyRefs(dv,r);
+  const r=activeRower(), dvRaw=derived(r), reachMax=maxReachableAuslage(dvRaw,r),
+        dv=derived(r,Math.min(state.phiA,reachMax)), refs=bodyRefs(dv,r);
   const data={...state, abgeleitet:{uebergriff_cm:+dv.U.toFixed(1), aussenhebel_cm:+dv.AH.toFixed(1),
     hebelverhaeltnis:+(dv.AH/r.IH).toFixed(2), schlagweite_grad:dv.SW,
     dollenhoehe_ueber_wasser_cm:+dv.dWL.toFixed(1),
