@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "Rudertrimm V2 Beta — Ruderriege Mark Essen 1904",
+  "short_name": "Rudertrimm V2",
+  "description": "Beta des Trimm-Visualisierers für Ruderboote nach DRV-Trimmhandbuch",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a120c",
+  "theme_color": "#0a120c",
+  "lang": "de",
+  "categories": ["sports", "utilities"],
+  "icons": [
+    {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}

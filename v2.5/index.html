@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rudertrimm V2 Beta — technischer Prüfstand</title>
+<meta name="description" content="Technische V2-Beta des Rudertrimm-Visualisierers mit validierter Datenhaltung und transparenten Modellgrenzen.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#0b140e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rudertrimm">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/v2.css">
+</head>
+<body data-presentation="compact">
+<a class="skip-link" href="#main-content">Direkt zu Ergebnissen und Visualisierung</a>
+<div id="liveStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+<section class="v2-context" aria-label="Aktueller Arbeitskontext">
+  <div><strong id="ctxBoat">Ungespeichertes Boot</strong><span id="ctxMode">Werkstatt</span><span id="ctxSeat">Platz 1 · Einer</span><span id="dirtyState">Arbeitsstand</span></div>
+  <div class="v2-state"><span id="storageState">Lokaler Speicher wird geprüft</span><span id="offlineState">Onlineprüfung läuft</span><span id="buildState">Build wird geprüft</span></div>
+</section>
+<div id="errorStatus" class="v2-error" role="alert" aria-atomic="true" hidden></div>
+<div class="layout">
+<aside aria-label="Rigg-, Boots- und Messwerte">
+  <div class="brand">
+    <svg width="52" height="52" viewBox="0 0 200 200" aria-label="Ruderriege Mark Essen 1904">
+      <defs>
+        <path id="rmeTop" d="M 100,100 m -74,0 a 74,74 0 1 1 148,0" fill="none"/>
+        <path id="rmeBot" d="M 100,100 m 66,0 a 66,66 0 0 1 -132,0" fill="none"/>
+      </defs>
+      <circle cx="100" cy="100" r="96" fill="#fff" stroke="#12220f" stroke-width="3"/>
+      <circle cx="100" cy="100" r="78" fill="none" stroke="#12220f" stroke-width="2.5"/>
+      <!-- gekreuzte Riemen -->
+      <g stroke="#12220f" stroke-width="7" stroke-linecap="round">
+        <line x1="26" y1="182" x2="172" y2="30"/>
+        <line x1="174" y1="182" x2="28" y2="30"/>
+      </g>
+      <g fill="#2e7d32" stroke="#12220f" stroke-width="2">
+        <path d="M18,20 l24,-6 6,26 -22,10 z"/>
+        <path d="M182,20 l-24,-6 -6,26 22,10 z"/>
+      </g>
+      <g fill="#fff"><circle cx="34" cy="26" r="6"/><circle cx="166" cy="26" r="6"/></g>
+      <g fill="#2e7d32">
+        <path d="M31,26 l3,-4 3,4 4,-3 -3,3 3,3 -4,-3 -3,4 -3,-4 -4,3 3,-3 -3,-3 z"/>
+        <path d="M163,26 l3,-4 3,4 4,-3 -3,3 3,3 -4,-3 -3,4 -3,-4 -4,3 3,-3 -3,-3 z"/>
+      </g>
+      <!-- Ringtext -->
+      <text font-size="21" font-weight="800" letter-spacing="2" fill="#12220f" font-family="Arial,sans-serif">
+        <textPath href="#rmeTop" startOffset="50%" text-anchor="middle">RUDERRIEGE · MARK · ESSEN</textPath>
+      </text>
+      <text font-size="21" font-weight="800" letter-spacing="4" fill="#12220f" font-family="Arial,sans-serif">
+        <textPath href="#rmeBot" startOffset="50%" text-anchor="middle">1904</textPath>
+      </text>
+      <!-- Wimpel mit Kreuz + Medaillon -->
+      <line x1="66" y1="70" x2="66" y2="150" stroke="#12220f" stroke-width="4" stroke-linecap="round"/>
+      <path d="M66,74 L150,100 L66,126 Z" fill="#fff" stroke="#12220f" stroke-width="2.5"/>
+      <path d="M66,100 H150 M100,80 V120" stroke="#2e7d32" stroke-width="8"/>
+      <circle cx="100" cy="100" r="15" fill="#fff" stroke="#12220f" stroke-width="2"/>
+      <path d="M100,90 l3,-5 3,5 5,-3 -3,3 5,3 -5,0 0,5 -3,-3 -3,3 0,-5 -5,0 5,-3 -5,-3 5,3 z" fill="#2e7d32" transform="translate(-4,-4) scale(1.15)"/>
+    </svg>
+    <h1>Rudertrimm V2 <span class="beta-badge">Beta</span><small>Technischer Prüfstand · Ruderriege Mark Essen 1904</small></h1>
+  </div>
+  <div class="presentation-switch" role="group" aria-label="Darstellungsumfang" aria-describedby="presentationHint">
+    <button type="button" id="presentationCompact" aria-pressed="true">Kompakt</button>
+    <button type="button" id="presentationDetails" aria-pressed="false">Details</button>
+  </div>
+  <p class="presentation-hint" id="presentationHint">
+    <span class="compact-only">Visualisierung &amp; Kernwerte · schnelle Trimmarbeit</span>
+    <span class="details-only">Vollständige Mess- und Datenbearbeitung</span>
+  </p>
+  <nav class="v2-actions" aria-label="Schnellnavigation">
+    <a href="#cards">Ergebnisse</a>
+    <a href="#visualWorkbench">Prüfstand</a>
+    <a href="#rowerSection">Aktiver Platz</a>
+    <a class="details-only" href="#masterDataSection">Stammdaten</a>
+  </nav>
+
+  <details class="workflow-guide compact-only" id="workflowGuide">
+    <summary>
+      <strong>Trimm in 5 Schritten</strong>
+      <span id="workflowGuideStatus" role="status" aria-live="polite">Fortschritt wird geprüft.</span>
+    </summary>
+    <p class="workflow-guide-principle"><strong>Komplex im Kern, einfach in der Benutzung.</strong> Kompakt zeigt den häufigen Ablauf, Details alle Werte; kritische Warnungen bleiben sichtbar.</p>
+    <nav aria-label="Operativer Trimmablauf">
+      <ol>
+        <li data-guide-step="boat"><a href="#preset" data-guide-target="boat">Boot wählen <span data-guide-state>offen</span></a></li>
+        <li data-guide-step="seat"><a href="#seattabs" data-guide-target="seat">Platz wählen <span data-guide-state>offen</span></a></li>
+        <li data-guide-step="profile"><a href="#dbSelect" data-guide-target="profile">Profil zuordnen <span data-guide-state>offen</span></a></li>
+        <li data-guide-step="result"><a href="#actionResult" data-guide-target="result">Ergebnis prüfen <span data-guide-state>offen</span></a></li>
+        <li data-guide-step="save"><a href="#bSave" data-guide-target="save">Bewusst speichern <span data-guide-state>offen</span></a></li>
+      </ol>
+    </nav>
+  </details>
+
+  <div class="box">
+    <section class="setup-group" aria-labelledby="setupBasicTitle">
+    <h2 class="slab setup-title" id="setupBasicTitle">Grundsetup</h2>
+    <label class="slab" for="preset">Bootsklasse</label>
+    <select id="preset" aria-describedby="presetHint">
+      <optgroup label="DRV / Nolte (Norm)">
+        <option value="1x">1x — Einer</option>
+        <option value="2x">2x — Doppelzweier</option>
+        <option value="3x">3x — Vereins-Dreier (Skull)</option>
+        <option value="4x">4x — Doppelvierer</option>
+        <option value="6x">6x — Vereins-Sechser (Skull)</option>
+        <option value="2-">2- — Zweier o. Stm.</option>
+        <option value="4-">4- — Vierer o. Stm.</option>
+        <option value="4+">4+ — Vierer m. Stm.</option>
+        <option value="8+">8+ — Achter</option>
+        <option value="gigS">Gig (Skull, Norm)</option>
+        <option value="gigR">Gig (Riemen, Norm)</option>
+      </optgroup>
+      <optgroup label="WM 2017 Survey (Elite-Median)">
+        <option value="wmM1x">M1x — Einer Männer</option>
+        <option value="wmW1x">W1x — Einer Frauen</option>
+        <option value="wmM2x">M2x — Doppelzweier M</option>
+        <option value="wmW2x">W2x — Doppelzweier F</option>
+        <option value="wmM4x">M4x — Doppelvierer M</option>
+        <option value="wmW4x">W4x — Doppelvierer F</option>
+        <option value="wmM2-">M2- — Zweier M</option>
+        <option value="wmW2-">W2- — Zweier F</option>
+        <option value="wmM4-">M4- — Vierer M</option>
+        <option value="wmW4-">W4- — Vierer F</option>
+        <option value="wmM8+">M8+ — Achter M</option>
+        <option value="wmW8+">W8+ — Achter F</option>
+      </optgroup>
+    </select>
+    <p class="hint" id="presetHint">Ein Preset ist ein Ausgangswert. 3x und 6x sind Vereinsklassen, keine World-Rowing-Standardklassen. Änderungen werden vor dem Überschreiben bestätigt.</p>
+    <label class="slab" for="blade" style="margin-top:10px">Ruder / Blatt</label>
+    <select id="blade">
+      <option value="big">Big-Blade</option>
+      <option value="mac">Macon</option>
+    </select>
+    <div class="seg" role="group" aria-label="Riggart">
+      <button type="button" id="rigS" aria-pressed="false">Skull</button>
+      <button type="button" id="rigR" aria-pressed="false">Riemen</button>
+    </div>
+    <div id="sideWrap" style="display:none">
+      <div class="slab" style="margin-top:10px">Schlagplatz-Seite <span style="text-transform:none;letter-spacing:0">(weitere Plätze wechselnd)</span></div>
+      <div class="seg" role="group" aria-label="Schlagplatz-Seite">
+        <button type="button" id="sideB" aria-pressed="false">Backbord</button>
+        <button type="button" id="sideS" aria-pressed="false">Steuerbord</button>
+      </div>
+    </div>
+    </section>
+    <section class="setup-group" aria-labelledby="setupMeasureTitle">
+    <h2 class="slab setup-title" id="setupMeasureTitle">Messkontext</h2>
+    <div class="slab" style="margin-top:10px">Messkontext</div>
+    <div class="seg" role="group" aria-label="Messkontext">
+      <button type="button" id="modeW" aria-pressed="false">Werkstatt (Böcke)</button>
+      <button type="button" id="modeX" aria-pressed="false">Wasser (Steg)</button>
+    </div>
+    <div id="refWrap">
+      <div class="slab" style="margin-top:10px">Dollenhöhen-Referenz</div>
+      <div class="seg" role="group" aria-label="Dollenhöhen-Referenz">
+        <button type="button" id="refSitz" aria-pressed="false">Rollsitz</button>
+        <button type="button" id="refSchiene" aria-pressed="false">Schiene</button>
+      </div>
+      <div class="ctl" style="margin-top:6px">
+        <div class="lab"><label for="in_seatOffset">Sitz-Tiefpunkt über Schiene</label><span class="val" id="v_seatOffset"></span></div>
+        <div class="ctl-input-pair">
+          <input type="range" id="in_seatOffset" min="3" max="8" step="0.25" value="5">
+          <span class="ctl-number-wrap"><label class="sr-only" for="num_seatOffset">Sitz-Tiefpunkt über Schiene als Zahl in Zentimetern</label><input class="ctl-number" type="number" id="num_seatOffset" min="3" max="8" step="0.25" value="5" required inputmode="decimal" aria-describedby="err_seatOffset"><span class="ctl-unit" aria-hidden="true">cm</span></span>
+        </div>
+        <div class="mm"><span>3</span><span>8</span></div>
+        <div class="ctl-error" id="err_seatOffset" aria-live="polite" hidden></div>
+      </div>
+    </div>
+    <details class="inline-help">
+      <summary>Messbezug kurz erklärt</summary>
+      <p>Auf Böcken wird die Dollenhöhe wahlweise vom Rollsitz-Tiefpunkt oder von der Schiene gemessen. Auf dem Wasser zeigt die App stattdessen die Höhe über der berechneten Wasserlinie.</p>
+    </details>
+    </section>
+    <section class="setup-group" aria-labelledby="setupBoatTitle">
+    <h2 class="slab setup-title" id="setupBoatTitle">Boot &amp; Datenbank</h2>
+    <div class="namerow details-only" style="margin-bottom:6px"><label class="sr-only" for="boatName">Bootsname</label><input id="boatName" type="text" maxlength="160" placeholder="Bootsname (z. B. Kirchboot)" autocomplete="off"></div>
+    <div class="boat-seat-count details-only">
+      <label class="slab" for="boatSeatCount">Plätze im Boot</label>
+      <input id="boatSeatCount" type="number" min="1" max="8" step="1" value="1" inputmode="numeric" aria-describedby="boatSeatCountHint" disabled>
+      <p class="hint" id="boatSeatCountHint">Bei bekannten Bootsklassen fest vorgegeben; bei Gig-Booten bewusst festlegen.</p>
+    </div>
+    <div class="namerow details-only" id="coxWrap" hidden>
+      <label for="coxName">Steuerperson (Metadatum, kein Ruderplatz)</label>
+      <input id="coxName" type="text" maxlength="160" placeholder="Name oder Pseudonym" autocomplete="off">
+    </div>
+    <label class="slab db-field-label" for="boatSelect">Boot laden</label>
+    <div class="dbrow" style="margin-top:0;border-top:0;padding-top:0">
+      <select id="boatSelect"><option value="">— gespeichertes Boot laden —</option></select>
+      <button type="button" id="quickEditBoat">Boot schnell bearbeiten</button>
+      <button type="button" class="details-only" id="boatSaveAs">＋ Speichern</button>
+      <button type="button" class="details-only" id="boatUpdate" disabled>Überschreiben</button>
+      <button type="button" class="details-only" id="boatDelete" disabled>Löschen</button>
+      <button type="button" class="details-only" id="boatExport">Export ⭳</button>
+      <button type="button" class="details-only" id="boatImport">Import ⭱</button>
+      <label class="sr-only details-only" for="boatFile">Bootsdatenbank als JSON importieren</label><input class="details-only" id="boatFile" type="file" accept="application/json,.json" hidden>
+    </div>
+    </section>
+  </div>
+
+  <section class="compact-summary compact-only" aria-labelledby="compactRigTitle">
+    <strong id="compactRigTitle">Riggwerte zusammengefasst</strong>
+    <p id="compactRigSummary">Aktiver Platz · Rigg- und Höhenwerte werden berechnet.</p>
+    <button type="button" class="open-details">Details öffnen</button>
+  </section>
+
+  <section class="compact-controls compact-only" aria-labelledby="compactControlsTitle">
+    <div class="compact-controls-heading">
+      <strong id="compactControlsTitle">Häufige Trimmwerte</strong>
+      <span>Innenhebel und Stemmbrettposition bleiben direkt bedienbar.</span>
+    </div>
+    <div id="compactControlHost" class="compact-control-host"></div>
+    <details class="inline-help" id="compactTrimHelp">
+      <summary>Innenhebel und Stemmbrett kurz erklärt</summary>
+      <p><strong>Innenhebel (IH):</strong> Griffseite bis Klemmring; der Stiftabstand <em>d</em> wird in der Momentarmrechnung separat berücksichtigt. Ein größerer Innenhebel verlängert bei gleicher Ruderlänge die Griffseite, verkürzt den Außenhebel und verändert das Kraftverhältnis.</p>
+      <p><strong>Stemmbrett längs (Fa):</strong> Längsposition des Fußpunkts relativ zur Dollenanlage. Sie beeinflusst Sitzweg, Knie- und Reichweitenmodell.</p>
+      <p>Nur in kleinen Schritten ändern und Materialgrenzen prüfen. Presets sind Ausgangswerte; Körper-, Natural-Catch- und 90°-Aussagen bleiben unkalibrierte Prüfmodelle, keine Trainerfreigabe.</p>
+    </details>
+  </section>
+
+  <div class="box details-only" id="controls"></div>
+
+  <div class="slab action-group compact-only">Arbeitsstand</div>
+  <div class="slab action-group details-only">Profile &amp; Dateien · Arbeitsstand &amp; Bericht</div>
+  <div class="filebtns">
+    <button type="button" id="bSave" aria-describedby="workspaceNotice"><svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2h9l3 3v9H2z"/><path d="M5 2v4h5V2M5 14v-5h6v5"/></svg><span>Arbeitsstand speichern</span></button>
+    <button type="button" id="bLoad"><svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2v8m0 0 3-3m-3 3L5 7"/><path d="M2 11v3h12v-3"/></svg><span>Arbeitsstand laden</span></button>
+    <button type="button" class="details-only" id="bExport"><svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 10V2m0 0L5 5m3-3 3 3"/><path d="M2 11v3h12v-3"/></svg><span>Messbericht exportieren</span></button>
+    <button type="button" class="details-only" id="bReset"><svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2v3h-3"/></svg><span>Presetwerte</span></button>
+  </div>
+  <p id="workspaceNotice" class="workspace-notice" role="status" aria-live="polite" hidden></p>
+</aside>
+
+<main id="main-content" tabindex="-1">
+  <div class="main-intro">
+    <h2 class="v2-purpose">Boot einstellen · Mannschaft vergleichen · Trimm direkt sehen</h2>
+    <section class="model-notice" role="note" aria-labelledby="modelNoticeTitle">
+      <strong id="modelNoticeTitle">Fachmodell im Prüfstatus</strong>
+      <span>WM-Presets und Hebelgeometrie: quellengeprüft. Körperkinematik, 90°-Rollweg und Armziel: unkalibriertes Prüfmodell, keine Trainerfreigabe.</span>
+    </section>
+  </div>
+
+  <section class="action-result" id="actionResult" aria-labelledby="actionResultTitle" tabindex="-1">
+    <div class="action-result-head">
+      <div>
+        <p class="eyebrow">Priorisierte Auswertung</p>
+        <h2 id="actionResultTitle">Ergebnis &amp; Handlungsbedarf</h2>
+      </div>
+      <strong class="action-status" id="actionStatus" data-status="missing">Daten fehlen</strong>
+    </div>
+    <p class="action-summary" id="actionSummary" role="status" aria-live="polite">Für eine Empfehlung zuerst Boot, Platz und Rudererprofil vollständig wählen.</p>
+    <button type="button" id="actionMissingFocus" class="action-missing-focus" aria-describedby="actionSummary">Boot, Platz &amp; Profil wählen</button>
+    <ol class="action-list" id="actionList"></ol>
+    <p class="action-caveat">Modellvorschläge und Zielkorridore · keine automatische Änderung, keine Garantie und keine Trainerfreigabe.</p>
+    <div class="action-share" aria-label="Ergebnis teilen oder drucken">
+      <label for="resultPrivacy">Namen im Ergebnis</label>
+      <select id="resultPrivacy" aria-describedby="actionSummary" disabled>
+        <option value="anonymous" selected>anonymisieren</option>
+        <option value="names">anzeigen</option>
+      </select>
+      <button type="button" id="resultExport" aria-describedby="actionSummary" disabled>Ergebnis JSON exportieren</button>
+      <button type="button" id="resultPrint" aria-describedby="actionSummary" disabled>Ergebnis drucken</button>
+    </div>
+  </section>
+
+  <section class="overview" aria-label="Trimmvisualisierung und Kernkennzahlen">
+    <article class="card visual-workbench" id="visualWorkbench" aria-labelledby="visualWorkbenchTitle" tabindex="-1">
+      <div class="visual-heading">
+        <h2 id="visualWorkbenchTitle">Trimm-Prüfstand <small>Drei synchrone Ansichten · sechs Durchzugsphasen · manuell oder animiert</small></h2>
+        <div class="phase-readout" aria-label="Aktuelle Durchzugsphase">
+          <span>Phase <b id="phN"></b></span>
+          <strong id="phName"></strong>
+        </div>
+        <p class="crew-scope" id="crewScope">1/1 belegt · 1x</p>
+      </div>
+      <div class="visual-tabs" role="tablist" aria-label="Ansicht des Rudertrimms">
+        <button type="button" role="tab" id="viewTabTop" aria-controls="viewPanelTop" aria-selected="true" tabindex="0">Draufsicht</button>
+        <button type="button" role="tab" id="viewTabSide" aria-controls="viewPanelSide" aria-selected="false" tabindex="-1">Seitenansicht</button>
+        <button type="button" role="tab" id="viewTabCross" aria-controls="viewPanelCross" aria-selected="false" tabindex="-1">Querschnitt</button>
+      </div>
+      <div class="view-panels" id="viewPanels">
+        <section class="view-panel" role="tabpanel" id="viewPanelTop" aria-labelledby="viewTabTop" tabindex="0">
+          <h3>Draufsicht <small>x-y-Ebene · Schlagbogen &amp; Zugbereich · Außenhebel verkürzt dargestellt, Winkel maßstabsgetreu</small></h3>
+          <div class="visual-host" id="vTop"></div>
+        </section>
+        <section class="view-panel" role="tabpanel" id="viewPanelSide" aria-labelledby="viewTabSide" tabindex="0" hidden>
+          <h3>Seitenansicht <small>Rollbahn, Stemmbrett &amp; Körperposition · zwei Ruderer im Boot (außer Einer)</small></h3>
+          <div class="sideinfo">
+            <table id="bodyTab"><caption class="sr-only">Körper- und Blattwerte der aktiven Phase</caption></table>
+          </div>
+          <div class="visual-host" id="vSide"></div>
+        </section>
+        <section class="view-panel" role="tabpanel" id="viewPanelCross" aria-labelledby="viewTabCross" tabindex="0" hidden>
+          <h3>Querschnitt <small>Dollenhöhe &amp; Wasserlinie · bearbeiteter Ruderer</small></h3>
+          <div class="visual-host visual-host--cross" id="vCross"></div>
+        </section>
+      </div>
+      <div class="visual-controls">
+        <button type="button" class="play v2-motion-only" id="play" aria-pressed="false">▶ Durchzug starten</button>
+        <div class="speed">Animationstempo
+          <label class="sr-only" for="speed">Animationstempo</label><input type="range" id="speed" min="0.25" max="2" step="0.25" value="1">
+          <b id="speedV">1.00×</b>
+        </div>
+      </div>
+      <div class="phases" id="phases" aria-label="Durchzugsphase direkt wählen"></div>
+    </article>
+    <section class="status-rail" aria-labelledby="statusRailTitle">
+      <h2 class="sr-only" id="statusRailTitle">Kernkennzahlen</h2>
+      <div class="cards" id="cards" tabindex="-1"></div>
+    </section>
+  </section>
+  <div class="chips" id="chips"></div>
+
+  <div class="card rowersec" id="rowerSection" data-fold="rower" tabindex="-1">
+    <h2>Ruderer &amp; Bootsplätze <small>Körperprofil · platzbezogenes Trimmprofil · reale Belegung</small></h2>
+    <div class="rowergrid">
+      <div class="vitruv-wrap"><div id="vitruv"></div></div>
+      <div class="roweredit">
+        <p class="compact-profile-summary compact-only" id="compactProfileSummary">Aktives Profil wird berechnet.</p>
+        <div class="seattabs" id="seattabs" role="group" aria-label="Reale Bootsplätze auswählen"></div>
+        <section class="seat-assignment" id="seatAssignmentPanel" aria-labelledby="seatAssignmentTitle" aria-describedby="seatAssignmentHelp">
+          <strong id="seatAssignmentTitle">Belegung des aktiven Platzes</strong>
+          <label for="dbSelect">Rudererprofil zuordnen</label>
+          <div class="seat-assignment-controls">
+            <select id="dbSelect"><option value="">— gespeicherten Ruderer wählen —</option></select>
+            <button type="button" id="seatCreateDraft">Neues Profil für Platz</button>
+            <button type="button" id="quickEditPerson" disabled>Person schnell bearbeiten</button>
+            <button type="button" id="seatUnassign">Platz freigeben</button>
+          </div>
+          <p id="seatAssignmentStatus" role="status" aria-live="polite" aria-atomic="true">Belegung wird geladen.</p>
+          <p id="externalLinkStatus" class="hint details-only">Keine externe Verknüpfung · eFa-Leseadapter noch nicht angebunden.</p>
+          <p class="hint" id="seatAssignmentHelp"><strong>Körperprofil</strong> = Person und Maße. <strong>Trimmprofil</strong> = Einstellungen dieses Bootsplatzes. Fehlt die Zuordnung, bleibt der Platz frei und die Körperrechnung aus; als nächsten sicheren Schritt ein Profil wählen oder neu anlegen. Platz freigeben löscht kein Körperprofil.</p>
+        </section>
+        <div class="forcecmp" id="forceCmp" style="display:none">
+          <div class="fc-title">Hebelverhältnis (Griffkraft bei gleichem Blattwiderstand)</div>
+          <div class="fc-vals">
+            <span id="fcS1"></span>
+            <span id="fcS2"></span>
+            <span class="fc-delta" id="fcDelta"></span>
+            <button type="button" id="fcEqualize" aria-describedby="fcEqualizeStatus" title="Innenhebel des aktiven Vergleichsplatzes an die Referenz angleichen">⚖ Angleichen</button>
+            <span id="fcEqualizeStatus" class="fc-status" role="status" aria-live="polite" hidden></span>
+          </div>
+        </div>
+        <div class="namerow details-only">
+          <label class="sr-only" for="rowerName">Name des bearbeiteten Ruderers</label><input id="rowerName" type="text" maxlength="160" placeholder="Name des Ruderers" autocomplete="off">
+          <span class="bmi" id="bmiBadge" title="Body-Mass-Index">BMI –</span>
+          <div class="stepper" id="stepper">
+            <button type="button" id="rPrev" aria-label="Vorheriges Rudererprofil" title="Vorheriges Profil aus Datenbank">◀</button>
+            <span id="stepLbl">Datenbank</span>
+            <button type="button" id="rNext" aria-label="Nächstes Rudererprofil" title="Nächstes Profil aus Datenbank">▶</button>
+          </div>
+        </div>
+        <div class="details-only" id="rowerControls"></div>
+        <details class="inline-help details-only">
+          <summary>Körpermaße richtig erfassen</summary>
+          <p>Beinlänge: Sohle bis Hüftgelenk. Rumpflänge: sitzend vom Sitz bis Scheitel. Spannweite: Mittelfinger zu Mittelfinger. Diese Maße steuern das unkalibrierte Körpermodell, nicht eine Trainerfreigabe.</p>
+        </details>
+        <div class="slab details-only" style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">Ruderer-Datenbank <span style="text-transform:none;letter-spacing:0">— einmal anlegen, immer wieder laden</span></div>
+        <div class="dbrow">
+          <div class="demo-actions" role="group" aria-label="Synthetische Demonstrationen">
+            <button type="button" id="loadTestielDemo" aria-describedby="testielDemoNote">Testiel · Demo laden</button>
+            <button type="button" id="loadComparisonDemo" aria-describedby="testielDemoNote">Vergleichsdemo laden</button>
+            <button type="button" id="removeDemo" aria-describedby="testielDemoNote" hidden>Demo entfernen</button>
+          </div>
+          <strong id="demoBadge" class="demo-badge" hidden>Synthetische Demo</strong>
+          <span id="testielDemoNote" class="demo-note" role="status" aria-live="polite">Synthetische Referenzdaten · lädt nur in den ungespeicherten Arbeitsstand und speichert nichts automatisch.</span>
+          <button class="details-only" id="dbSaveAs" title="Aktuellen Ruderer unter seinem Namen neu speichern">＋ Speichern</button>
+          <button class="details-only" id="dbUpdate" title="Gewählten Datenbank-Eintrag überschreiben" disabled>Überschreiben</button>
+          <button class="details-only" id="dbDelete" disabled>Löschen</button>
+          <button class="details-only" id="dbExport">Export ⭳</button>
+          <button class="details-only" id="dbImport">Import ⭱</button>
+          <label class="sr-only details-only" for="dbFile">Rudererprofile als JSON importieren</label><input class="details-only" id="dbFile" type="file" accept="application/json,.json" hidden>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="card master-data details-only" id="masterDataSection" aria-labelledby="masterDataTitle" tabindex="-1">
+    <h2 id="masterDataTitle">Stammdaten <small>Personen und Boote getrennt auswählen · erst eine ausdrückliche Aktion übernimmt Daten in den Arbeitsstand</small></h2>
+    <div class="master-data-grid">
+      <article class="master-data-panel" aria-labelledby="masterPersonTitle">
+        <h3 id="masterPersonTitle">Personen</h3>
+        <p class="hint" id="masterPersonStatus" role="status" aria-live="polite">Gespeicherte Profile werden geladen.</p>
+        <label for="masterPersonSelect">Gespeichertes Rudererprofil</label>
+        <select id="masterPersonSelect"><option value="">— Person auswählen —</option></select>
+        <div class="master-data-actions">
+          <button type="button" id="masterPersonUse" disabled>Aktivem Platz zuordnen</button>
+          <button type="button" id="masterPersonManage">Im Arbeitsbereich pflegen</button>
+          <button type="button" id="masterPersonDelete" aria-describedby="masterPersonStatus" disabled>Gespeichertes Profil löschen</button>
+        </div>
+        <p class="hint">Die Auswahl allein verändert weder Belegung noch Messwerte. Speichern, Überschreiben, Löschen sowie Import/Export bleiben in der vorhandenen Profilpflege revisionsgeschützt.</p>
+      </article>
+      <article class="master-data-panel" aria-labelledby="masterBoatTitle">
+        <h3 id="masterBoatTitle">Boote</h3>
+        <p class="hint" id="masterBoatStatus" role="status" aria-live="polite">Gespeicherte Boote werden geladen.</p>
+        <label for="masterBoatSelect">Gespeichertes Boot</label>
+        <select id="masterBoatSelect"><option value="">— Boot auswählen —</option></select>
+        <div class="master-data-actions">
+          <button type="button" id="masterBoatUse" disabled>In Arbeitsstand laden</button>
+          <button type="button" id="masterBoatManage">Im Arbeitsbereich pflegen</button>
+        </div>
+        <p class="hint">Die Auswahl allein lädt nichts. Erst „In Arbeitsstand laden“ nutzt den vorhandenen Dirty- und Revisionsschutz.</p>
+      </article>
+    </div>
+    <details class="master-data-tool" id="historySection">
+      <summary>Änderungshistorie · Alt/Neu</summary>
+      <div class="master-data-tool-body">
+        <p class="hint">Lokaler, nur lesbarer Verlauf gespeicherter Personen und Boote. Keine automatische Wiederherstellung. Beim Löschen werden personenbezogene Altsnapshots entfernt; zurück bleibt nur ein datenarmes Löschereignis.</p>
+        <div class="history-selectors">
+          <label for="historyKind">Stammdatenart
+            <select id="historyKind">
+              <option value="rowers">Personen</option>
+              <option value="boats">Boote</option>
+            </select>
+          </label>
+          <label for="historyEntity">Eintrag
+            <select id="historyEntity"><option value="">— Eintrag wählen —</option></select>
+          </label>
+          <label for="historyRevision">Revision
+            <select id="historyRevision"><option value="">— Revision wählen —</option></select>
+          </label>
+        </div>
+        <p class="history-meta" id="historyMeta" role="status" aria-live="polite">Eintrag und Revision wählen.</p>
+        <dl class="history-diff" id="historyDiff" aria-label="Änderungen Alt zu Neu"></dl>
+      </div>
+    </details>
+
+    <details class="master-data-tool" id="efaImportSection">
+      <summary>Einmaliger eFa-CSV-Import · lokale Vormerkliste</summary>
+      <div class="master-data-tool-body">
+        <p class="hint"><strong>Keine Verbindung und kein Sync:</strong> Die App liest ausschließlich die bewusst gewählte lokale CSV. Namen und Bootsbezeichnungen bleiben unvollständige Vormerkungen und werden weder berechnet noch Plätzen zugeordnet, bis Pflichtmaße beziehungsweise Bootsklasse und Rigg bewusst ergänzt sind. Kein Rückschreiben in eFa.</p>
+        <div class="efa-import-grid">
+          <label for="efaEntityType">CSV enthält
+            <select id="efaEntityType">
+              <option value="person">Personen</option>
+              <option value="boat">Boote</option>
+            </select>
+          </label>
+          <label for="efaDelimiter">Trennzeichen
+            <select id="efaDelimiter">
+              <option value=";">Semikolon ;</option>
+              <option value=",">Komma ,</option>
+              <option value="&#9;">Tabulator</option>
+            </select>
+          </label>
+          <label for="efaFile">Lokale eFa-CSV
+            <input id="efaFile" type="file" accept="text/csv,.csv">
+          </label>
+        </div>
+        <fieldset class="efa-mapping" id="efaMapping" disabled>
+          <legend>Spalten bewusst zuordnen</legend>
+          <label class="efa-person-only" for="efaPersonNameMode">Namensaufbau
+            <select id="efaPersonNameMode">
+              <option value="display">eine Anzeigename-Spalte</option>
+              <option value="parts">Vorname + Nachname</option>
+            </select>
+          </label>
+          <label class="efa-display-only" for="efaDisplayNameColumn">Anzeigename
+            <select id="efaDisplayNameColumn"><option value="">— Spalte wählen —</option></select>
+          </label>
+          <label class="efa-parts-only" for="efaFirstNameColumn">Vorname
+            <select id="efaFirstNameColumn"><option value="">— Spalte wählen —</option></select>
+          </label>
+          <label class="efa-parts-only" for="efaLastNameColumn">Nachname
+            <select id="efaLastNameColumn"><option value="">— Spalte wählen —</option></select>
+          </label>
+          <label class="efa-parts-only" for="efaAffixColumn">Namenszusatz (optional)
+            <select id="efaAffixColumn"><option value="">— nicht übernehmen —</option></select>
+          </label>
+          <label class="efa-boat-only" for="efaBoatNameColumn">Bootsname
+            <select id="efaBoatNameColumn"><option value="">— Spalte wählen —</option></select>
+          </label>
+          <label for="efaIdColumn">Externe ID (optional)
+            <select id="efaIdColumn"><option value="">— nicht übernehmen —</option></select>
+          </label>
+          <label for="efaScope">eFa-Projekt/Verein (nur bei ID)
+            <input id="efaScope" type="text" maxlength="80" autocomplete="off" placeholder="z. B. Vereinsprojekt Nord">
+          </label>
+        </fieldset>
+        <div class="efa-import-actions">
+          <button type="button" id="efaPreview" disabled>Vorschau erstellen</button>
+          <button type="button" id="efaCommit" disabled>Geprüfte Vormerkungen importieren</button>
+        </div>
+        <p id="efaImportStatus" role="status" aria-live="polite">Noch keine CSV gewählt.</p>
+        <div id="efaPreviewResult" tabindex="-1" hidden>
+          <h3 id="efaPreviewTitle">Importvorschau</h3>
+          <ul id="efaPreviewList"></ul>
+        </div>
+        <section class="efa-candidates" aria-labelledby="efaCandidatesTitle">
+          <h3 id="efaCandidatesTitle">Unvollständige Vormerkungen</h3>
+          <p class="hint">Diese Einträge sind bewusst keine vollständigen Rudererprofile oder Trimmboote. Löschen entfernt auch ihre lokalen Altsnapshots.</p>
+          <ul id="efaCandidateList"></ul>
+        </section>
+      </div>
+    </details>
+  </section>
+
+  <details class="foot details-only">
+    <summary>Richtwerte, Quellen &amp; Modellgrenzen</summary>
+    <div class="foot-content">
+      <p>Richtwerte: Übergriff Skull 18–23 cm / Riemen 30–34 cm · Auslagewinkel Weltklasse Skull 65–75° zur Orthogonalen · Schlagweite 110° (Skull) / 90° (Riemen), ~60 % vor der Orthogonalstellung · Dollenhöhe über Wasser 22–26 cm · Anlage Norm 4° zum Heck (±4°) · Außenneigung max. ~2° · Innenhebel-Faustformel: Riemen = DA + 30 cm, Skull = DA/2 + 8 cm · Stemmbrett-Prüfmodell bei 90°: Zielbereich nur, wenn Kniewinkel 160–170° und genutzter Rollweg 70–80 % gleichzeitig erfüllt sind · Armwinkel und Körperkinematik sind in dieser Beta unkalibrierte Modellwerte; Statusanzeigen sind Prüfhinweise, keine Freigabe · 1 kg Mannschaftsgewicht ≙ 1 mm Eintauchtiefe. Alle Maße als Ausgangspunkt — auf dem Wasser erproben.</p>
+      <p>Nach DRV-Trimmhandbuch (Ellerbrake/Filter · Nolte · v. Lingelsheim · Piesik). Übergriff, Dollenhöhe über Wasser, Knie- und Armwinkel sind abgeleitete Größen. Körperhaltung: geometrisch konsistentes Modell (Hand am Griff, Fuß am Stemmbrett, Sitz auf der Rollbahn), Bewegungsfolge Beine → Rumpf → Arme; Kraftpfeil rein schematisch.</p>
+    </div>
+  </details>
+</main>
+</div>
+
+<dialog id="personQuickEditDialog" class="quick-edit-dialog" aria-labelledby="personQuickEditTitle" aria-describedby="personQuickEditDescription">
+  <form method="dialog" id="personQuickEditForm">
+    <h2 id="personQuickEditTitle">Person im Arbeitsstand bearbeiten</h2>
+    <p id="personQuickEditDescription">Ändert nur das Profil des aktiven Bootsplatzes. Der gespeicherte Stammdatensatz bleibt bis „Überschreiben“ unverändert.</p>
+    <div class="quick-edit-grid">
+      <label class="quick-edit-wide" for="quickPersonName">Name oder Pseudonym<input id="quickPersonName" type="text" maxlength="160" autocomplete="off" required></label>
+      <label for="quickPersonLegLen">Beinlänge <span>cm</span><input id="quickPersonLegLen" type="number" min="70" max="105" step="1" inputmode="decimal" required></label>
+      <label for="quickPersonTorsoLen">Rumpflänge <span>cm</span><input id="quickPersonTorsoLen" type="number" min="75" max="110" step="1" inputmode="decimal" required></label>
+      <label for="quickPersonWingspan">Spannweite <span>cm</span><input id="quickPersonWingspan" type="number" min="150" max="215" step="1" inputmode="decimal" required></label>
+      <label for="quickPersonShoulder">Schulterbreite <span>cm</span><input id="quickPersonShoulder" type="number" min="32" max="48" step="1" inputmode="decimal" required></label>
+      <label for="quickPersonWeight">Gewicht <span>kg</span><input id="quickPersonWeight" type="number" min="45" max="120" step="1" inputmode="decimal" required></label>
+      <output class="quick-edit-derived quick-edit-wide" id="quickPersonHeight" aria-live="polite">Abgeleitete Körpergröße wird berechnet.</output>
+    </div>
+    <p class="quick-edit-error" id="personQuickEditError" role="alert" hidden></p>
+    <div class="quick-edit-actions">
+      <button type="button" id="quickPersonCancel">Abbrechen</button>
+      <button type="button" id="quickPersonApply">In Arbeitsstand übernehmen</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="boatQuickEditDialog" class="quick-edit-dialog" aria-labelledby="boatQuickEditTitle" aria-describedby="boatQuickEditDescription">
+  <form method="dialog" id="boatQuickEditForm">
+    <h2 id="boatQuickEditTitle">Boot und aktiven Platz bearbeiten</h2>
+    <p id="boatQuickEditDescription">Ändert nur Bootsname, Innenhebel und Stemmbrettposition des beim Öffnen aktiven Platzes. Gespeicherte Bootsrevisionen bleiben unverändert.</p>
+    <div class="quick-edit-grid">
+      <label class="quick-edit-wide" for="quickBoatName">Bootsname<input id="quickBoatName" type="text" maxlength="160" autocomplete="off" required></label>
+      <label for="quickBoatInboard">Innenhebel <span>cm</span><input id="quickBoatInboard" type="number" step="0.5" inputmode="decimal" required></label>
+      <label for="quickBoatFootboard">Stemmbrett längs (Fa) <span>cm</span><input id="quickBoatFootboard" type="number" min="26" max="56" step="0.5" inputmode="decimal" required></label>
+    </div>
+    <p class="quick-edit-error" id="boatQuickEditError" role="alert" hidden></p>
+    <div class="quick-edit-actions">
+      <button type="button" id="quickBoatCancel">Abbrechen</button>
+      <button type="button" id="quickBoatApply">In Arbeitsstand übernehmen</button>
+    </div>
+  </form>
+</dialog>
+
+<section class="print-result" id="printResult" aria-label="Druckansicht des Rudertrimm-Ergebnisses"></section>
+
+<noscript>Diese Anwendung benötigt JavaScript für Berechnung und lokale Datenhaltung.</noscript>
+<script src="version.js"></script>
+<script src="js/app.bundle.js"></script>
+</body>
+</html>

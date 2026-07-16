@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "source": {
+    "publisher": "World Rowing",
+    "title": "2017 Rigging Survey",
+    "url": "https://worldrowing.com/document/2017-rigging-survey/",
+    "workbookUrl": "https://d2cx26qpfwuhvu.cloudfront.net/worldrowing/wp-content/uploads/2020/12/04182835/2017RiggingSurveyJune272018_Neutral.xlsx",
+    "sha256": "e0d494d42fd5e0868a2bc64a388713083fec26c84a11173bc8c329a07659024d"
+  },
+  "method": {
+    "statistic": "linear-interpolated median over finite values inside the documented plausible range",
+    "rigDistance": "first plausible numeric value from workbook columns N or O; 145–175 cm for scull and 70–100 cm for sweep",
+    "inboard": "column T, 75–130 cm",
+    "oarLength": "column S, 260–410 cm",
+    "note": "Derived summary only. numericRows counts rows containing any numeric value after the two header rows; samples contains the metric-specific N actually used for each median. The official workbook is not redistributed. Run scripts/analyze_world_rowing_2017.py against the source workbook."
+  },
+  "classes": {
+    "M1x": {"numericRows": 40, "samples": {"rigDistance": 38, "inboard": 39, "oarLength": 39}, "rigDistance": 160, "inboard": 88.5, "oarLength": 288.5},
+    "W1x": {"numericRows": 24, "samples": {"rigDistance": 18, "inboard": 20, "oarLength": 20}, "rigDistance": 160, "inboard": 88, "oarLength": 286.5},
+    "W2-": {"numericRows": 22, "samples": {"rigDistance": 20, "inboard": 22, "oarLength": 22}, "rigDistance": 86.4, "inboard": 116.25, "oarLength": 373},
+    "M2-": {"numericRows": 36, "samples": {"rigDistance": 36, "inboard": 36, "oarLength": 36}, "rigDistance": 86, "inboard": 116, "oarLength": 375.5},
+    "M2x": {"numericRows": 40, "samples": {"rigDistance": 38, "inboard": 38, "oarLength": 38}, "rigDistance": 159, "inboard": 88.5, "oarLength": 289},
+    "M4x": {"numericRows": 60, "samples": {"rigDistance": 60, "inboard": 60, "oarLength": 60}, "rigDistance": 159, "inboard": 88, "oarLength": 289.5},
+    "LW2x": {"numericRows": 34, "samples": {"rigDistance": 32, "inboard": 32, "oarLength": 32}, "rigDistance": 159, "inboard": 87.5, "oarLength": 286},
+    "W2x": {"numericRows": 28, "samples": {"rigDistance": 24, "inboard": 24, "oarLength": 24}, "rigDistance": 159.3, "inboard": 87.5, "oarLength": 287.5},
+    "LM2x": {"numericRows": 46, "samples": {"rigDistance": 46, "inboard": 44, "oarLength": 44}, "rigDistance": 159.5, "inboard": 88, "oarLength": 288},
+    "W8+": {"numericRows": 65, "samples": {"rigDistance": 56, "inboard": 64, "oarLength": 65}, "rigDistance": 84, "inboard": 114, "oarLength": 373},
+    "W4-": {"numericRows": 48, "samples": {"rigDistance": 48, "inboard": 48, "oarLength": 48}, "rigDistance": 85, "inboard": 115.25, "oarLength": 373},
+    "M4-": {"numericRows": 60, "samples": {"rigDistance": 60, "inboard": 56, "oarLength": 56}, "rigDistance": 85, "inboard": 115, "oarLength": 376},
+    "W4x": {"numericRows": 36, "samples": {"rigDistance": 36, "inboard": 36, "oarLength": 36}, "rigDistance": 159, "inboard": 88, "oarLength": 288},
+    "M8+": {"numericRows": 96, "samples": {"rigDistance": 88, "inboard": 88, "oarLength": 88}, "rigDistance": 83.5, "inboard": 113.75, "oarLength": 377}
+  }
+}

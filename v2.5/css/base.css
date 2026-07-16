@@ -1,0 +1,125 @@
+:root{
+    /* Vereinsfarbe Grün (Ruderriege Mark Essen 1904) */
+    --bg:#0a120c; --panel:#101a13; --panel2:#17281c; --card:#122017;
+    --line:#22392a; --line2:#2a463366;
+    --fg:#e7efe8; --fg-dim:#89a090; --fg-mut:#5c7364;
+    --accent:#2e8b3d; --accent2:#67c77e;
+    --wood:#c9925a; --blade:#e8b04b; --water:#0d2622; --waterline:#43b98f;
+    --ok:#4fd07a; --warn:#f0a92e; --bad:#f8514d;
+    --hull:#2b4638; --body:#9db0a4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--fg); font:14px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif}
+  .layout{display:grid; grid-template-columns:300px 1fr; min-height:100vh}
+  @media(max-width:1000px){.layout{grid-template-columns:1fr}}
+
+  aside{background:var(--panel); border-right:1px solid var(--line); padding:18px 16px 30px; display:flex; flex-direction:column; gap:14px}
+  .brand{display:flex; gap:10px; align-items:center; margin-bottom:4px}
+  .brand h1{font-size:15px; font-weight:750; letter-spacing:.04em; line-height:1.15; text-transform:uppercase}
+  .brand small{display:block; color:var(--fg-dim); font-weight:400; text-transform:none; letter-spacing:0; font-size:11.5px}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px}
+  .slab{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim); margin:2px 0 6px}
+  .slab.grp{margin-top:14px; border-top:1px solid var(--line); padding-top:10px}
+  select{width:100%; background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; cursor:pointer}
+  .seg{display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; margin-top:10px}
+  .seg button{flex:1; border:0; background:transparent; color:var(--fg-dim); padding:8px; font-size:12.5px; font-weight:650; letter-spacing:.06em; cursor:pointer; text-transform:uppercase}
+  .seg button.on{background:var(--accent); color:#03192e}
+  button.play{width:100%; margin-top:10px; background:var(--accent); border:0; color:#03192e; font-weight:700; letter-spacing:.05em; padding:10px; border-radius:8px; cursor:pointer; font-size:13px; text-transform:uppercase}
+  button.play.on{background:var(--warn); color:#241800}
+  .speed{display:flex; align-items:center; gap:8px; margin-top:10px; font-size:11px; color:var(--fg-dim)}
+  .speed b{color:var(--fg); font-variant-numeric:tabular-nums; min-width:42px; text-align:right}
+  input[type=range]{width:100%; accent-color:var(--accent); height:18px}
+  .ctl{margin:10px 0 0}
+  .ctl .lab{display:flex; justify-content:space-between; align-items:baseline; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-dim)}
+  .ctl .lab .val{color:var(--fg); font-size:13.5px; font-weight:650; font-variant-numeric:tabular-nums; text-transform:none; letter-spacing:0}
+  .ctl .mm{display:flex; justify-content:space-between; font-size:10px; color:var(--fg-mut); margin-top:-3px}
+  .ctl .hint{font-size:10.5px; color:var(--fg-mut); margin-top:1px}
+  .filebtns{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+  .filebtns button{background:var(--panel2); border:1px solid var(--line); color:var(--fg-dim); border-radius:8px; padding:9px 2px 7px; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px}
+  .filebtns button:hover{color:var(--fg); border-color:var(--accent)}
+  .filebtns svg{width:15px; height:15px}
+
+  main{padding:16px 18px 34px; overflow-x:hidden; display:flex; flex-direction:column; gap:14px}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:10px}
+  .scard{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; text-align:center}
+  .scard .ico{display:flex; align-items:center; justify-content:center; gap:6px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:4px}
+  .scard .ico svg{width:15px;height:15px; flex:none}
+  .scard .big{font-size:22px; font-weight:750; font-variant-numeric:tabular-nums; line-height:1.1}
+  .scard .st{font-size:11px; margin-top:2px; font-weight:600}
+  .scard .rng{font-size:10.5px; color:var(--fg-mut); margin-top:1px}
+  .scard.ok .st{color:var(--ok)} .scard.warn .st{color:var(--warn)} .scard.bad .st{color:var(--bad)}
+  .chips{display:flex; flex-wrap:wrap; gap:6px}
+  .chip{display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:3px 10px 3px 8px; font-size:11.5px; color:var(--fg-dim)}
+  .chip .dot{width:8px; height:8px; border-radius:50%}
+  .chip b{color:var(--fg); font-variant-numeric:tabular-nums; font-weight:600}
+  .chip.ok .dot{background:var(--ok)} .chip.warn .dot{background:var(--warn)} .chip.bad .dot{background:var(--bad)}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; position:relative}
+  .card h2{font-size:12.5px; font-weight:750; letter-spacing:.08em; text-transform:uppercase}
+  /* Einklappbare Karten: Klick auf die Überschrift */
+  .card[data-fold] h2{cursor:pointer; user-select:none; -webkit-user-select:none; padding-right:26px}
+  .card[data-fold] h2::after{content:'▾'; position:absolute; right:14px; top:12px; color:var(--fg-dim); font-size:13px; transition:transform .15s}
+  .card.closed h2::after{transform:rotate(-90deg)}
+  .card.closed{padding-bottom:12px}
+  .card.closed > :not(h2){display:none}
+  .card.closed h2 small{opacity:.55}
+  .card h2 small{display:block; color:var(--fg-dim); font-weight:400; letter-spacing:0; text-transform:none; font-size:11.5px; margin-top:1px}
+  .duo{display:grid; grid-template-columns:2fr 3fr; gap:14px}
+  @media(max-width:1250px){.duo{grid-template-columns:1fr}}
+  #vTop svg, #vCross svg, #vSide svg{display:block; width:100%; height:auto}
+  svg text{font:11px -apple-system,"Segoe UI",Roboto,sans-serif; fill:var(--fg-dim)}
+  svg .cap{font-size:10px; letter-spacing:.09em; text-transform:uppercase}
+  svg .big{font-size:14px; font-weight:700; fill:var(--fg)}
+  .sideinfo{position:absolute; top:12px; right:14px; text-align:right; background:#0d1626cc; border:1px solid var(--line); border-radius:10px; padding:8px 12px; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px)}
+  .sideinfo .ph{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--fg-dim)}
+  .sideinfo .phv{font-size:15px; font-weight:750; color:var(--accent2); margin-bottom:5px}
+  .sideinfo table{border-collapse:collapse; margin-left:auto}
+  .sideinfo td{font-size:11px; padding:1px 0 1px 14px; color:var(--fg-dim); text-align:right; white-space:nowrap}
+  .sideinfo td.v{color:var(--fg); font-weight:650; font-variant-numeric:tabular-nums}
+
+  /* ---- Ruderer-Sektion ---- */
+  .rowergrid{display:grid; grid-template-columns:230px 1fr; gap:16px; margin-top:8px}
+  @media(max-width:820px){.rowergrid{grid-template-columns:1fr}}
+  .vitruv-wrap{background:#0a1322; border:1px solid var(--line); border-radius:10px; padding:6px; display:flex; align-items:center; justify-content:center}
+  .vitruv-wrap svg{width:100%; height:auto}
+  .seattabs{display:flex; gap:8px; margin-bottom:10px}
+  .seattabs button{flex:1; background:var(--card); border:1px solid var(--line); color:var(--fg-dim); border-radius:8px; padding:8px 6px; font-size:12px; font-weight:650; cursor:pointer; display:flex; flex-direction:column; gap:2px; align-items:center}
+  .seattabs button .sub{font-weight:400; font-size:10px; letter-spacing:.04em}
+  .seattabs button.on{border-color:var(--accent); color:var(--fg)}
+  .seattabs button.s1.on{border-color:#dbe4ee; box-shadow:inset 0 0 0 1px #dbe4ee55}
+  .seattabs button.s2.on{border-color:var(--accent2); box-shadow:inset 0 0 0 1px var(--accent2)}
+  .namerow{display:flex; gap:8px; margin-bottom:8px; align-items:stretch}
+  .namerow input{flex:1; background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:13px}
+  .bmi{display:flex; align-items:center; gap:5px; white-space:nowrap; font-size:12px; font-weight:650; padding:0 11px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); font-variant-numeric:tabular-nums}
+  .bmi b{font-size:14px}
+  .bmi.lo{color:#63b3ff; border-color:#2e5578} .bmi.ok{color:var(--ok); border-color:#2b6b3f}
+  .bmi.hi{color:var(--warn); border-color:#5c4a1d} .bmi.vhi{color:var(--bad); border-color:#6b2d2b}
+  .forcecmp{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:10px}
+  .forcecmp .fc-title{font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:5px}
+  .forcecmp .fc-vals{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:12.5px}
+  .forcecmp .fc-vals b{font-variant-numeric:tabular-nums}
+  .forcecmp .fc-delta{color:var(--ok); font-weight:650}
+  .forcecmp .fc-delta.warn{color:var(--warn)} .forcecmp .fc-delta.bad{color:var(--bad)}
+  .forcecmp button{margin-left:auto; background:var(--accent); color:#03192e; border:0; border-radius:6px; padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap}
+  .forcecmp button:hover{filter:brightness(1.12)}
+  .forcecmp button:disabled{opacity:.4; cursor:default; filter:none}
+  .stepper{display:flex; align-items:center; gap:2px; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+  .stepper button{background:var(--panel2); color:var(--fg); border:0; padding:0 10px; font-size:13px; cursor:pointer; align-self:stretch}
+  .stepper button:hover{background:var(--accent); color:#03192e}
+  .stepper span{font-size:11px; color:var(--fg-dim); padding:0 8px; min-width:96px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  #rowerControls{display:grid; grid-template-columns:1fr 1fr; gap:2px 16px}
+  @media(max-width:560px){#rowerControls{grid-template-columns:1fr}}
+  .dbrow{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; border-top:1px solid var(--line); padding-top:10px}
+  .dbrow select{flex:1; min-width:150px}
+  .dbrow button{background:var(--panel2); color:var(--fg-dim); border:1px solid var(--line); border-radius:7px; padding:6px 10px; font-size:11.5px; cursor:pointer}
+  .dbrow button:hover{color:var(--fg); border-color:var(--accent)}
+  .vitruv-seg{cursor:ns-resize}
+
+  .phases{display:grid; grid-template-columns:repeat(6,1fr); gap:8px}
+  .phase{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:7px 8px; cursor:pointer; display:flex; align-items:center; gap:8px; color:var(--fg-dim)}
+  .phase:hover{border-color:var(--accent)}
+  .phase.on{border-color:var(--accent); background:var(--panel2); color:var(--fg)}
+  .phase .n{width:20px; height:20px; border-radius:50%; background:var(--panel2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex:none}
+  .phase.on .n{background:var(--accent); color:#03192e; border-color:var(--accent)}
+  .phase .t{font-size:10px; letter-spacing:.07em; text-transform:uppercase; line-height:1.2}
+  .foot{font-size:11px; color:var(--fg-mut); max-width:1000px}
