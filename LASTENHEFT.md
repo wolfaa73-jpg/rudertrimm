@@ -176,6 +176,41 @@ die nötige Griffkraft ∝ Außenhebel⁄Innenhebel (Drehmomentgleichgewicht um 
 Verhältnis ⇒ rechnerisch gleiche Griffkraft. Angleichen löst `IH₂ = L₂/(Verhältnis₁+1)` (Ruderlänge von
 Platz 2 bleibt, nur sein Innenhebel wird angepasst, auf 0,5 cm gerundet, slider-geclampt).
 
+### 6I · Fa bestimmt real den Auslagewinkel (Kausalität umgekehrt) ✅ *(14.7.2026)*
+Wolfs Korrektur am 6G-Ansatz: „In der Realität ändert Fa nicht die Körperhaltung, sondern der Griff
+wandert nach vorn/hinten — Stemmbrett zum Heck = größere Auslage, zum Bug = kleinere. Der Körper
+bleibt, nur die Hände wandern." Diagnose: das alte Modell nahm den phiA-Regler als starres, **Fa-
+unabhängiges** Handziel (`hand.x=IH·sin(phiA)`) und verbog Rücken/Knie, um es zu erreichen — „Hände
+angenagelt, Rücken bewegt sich", exakt umgekehrt zur Realität.
+
+**Neue Kausalität:** `naturalCatchReach(dv,r)` — die Körperhaltung am Einsatz ist eine FESTE Schablone
+(Knie 58°, Vorlage `CATCH_LEAN_DEG`=16°, unabhängig von Fa und vom phiA-Regler). Fa verschiebt die
+Hüfte (`hipOf(58°)`), die Hüfte verschiebt bei fixer Vorlage die Schulter, die Schulter verschiebt bei
+gestrecktem Arm die Hand — **das** ergibt den tatsächlichen Auslagewinkel (2–3 Iterationen für die
+schwache dzArm-Rückkopplung). Dieser Wert (`effPhiA`) ersetzt den Regler-Wert überall in der Kinematik
+(nicht mehr nur als Kappung wie in 6G, sondern durchgehend). Richtung verifiziert: Fa 28→54 (Skull)
+gibt Auslage 62°→81°, Fa 28→50 (Riemen) gibt 43°→54° — Stemmbrett Richtung Heck (größeres Fa) = größere
+Auslage, wie gefordert.
+
+**Zielkonflikt aufgedeckt, nicht versteckt:** Über den gesamten Fa-Bereich sind DRV-Ziel-Auslage (66°/54°)
+und DRV-Stemmbrett-Ideal (Knie bei 90° ≈165°) bei KEINEM Fa-Wert gleichzeitig erfüllbar (Fa 32,5 →
+Auslage 66° ✓ aber Knie 116°; Fa 54 → Knie 156° aber Auslage 81°) — unser Kniewinkel-Modell (58°-
+Schablone + reine Beinführung) trifft die 165°-Bedingung des Handbuchs nicht exakt. Entscheidung: Auslage
+priorisiert (Fa-Defaults neu: Skull 32,5 cm, Riemen 50 cm, statt vorher 48/38 für die Knie-Kalibrierung),
+Stemmbrett-Karte informativ mit weitem Band (150–172°, ±35° Toleranz) statt hart geprüft.
+
+**Nebenfund + Fix „flüssige Beinbewegung":** Beim Verifizieren fror der Kniewinkel bei t≈76% auf 172°
+ein (24 % des Zugs bewegungslos) und der Rumpf schoss danach 5–12° zurück. Ursache: die alte
+`legShare*(hand.x−hand0x)`-Restkorrektur der Hüfte explodierte, weil die Hand (Rigg-Vorgabe) über einen
+größeren Winkelbereich läuft als die Schablonen-Reichweite `hand0x` das vorwegnahm — das knallte früh
+gegen die Hüft-Grenze. **Fix:** Hüfte folgt jetzt NUR dem reinen Bein-Fahrplan (`hipX=hip0x`, keine
+Restkorrektur, kein Clamp nötig — Sequenz Beine→Rücken→Arme, wie im Handbuch beschrieben). Damit: Knie
+komplett sprungfrei (0 Richtungswechsel, max. 1,8°/Schritt) über den ganzen Zug. Zweiter, kleinerer Fund:
+beim Umschalten zwischen „Arm erreicht Griff" und „Arm zu lang" (Ellbogen-Beuge-Logik) sprang der
+Rumpfwinkel auf einen willkürlichen Platzhalter (`lo−30°`); durch stetige lineare Extrapolation über die
+lokale Steigung ersetzt (12°-Sprung → 2°-sanfte Welle). Alle 20 Presets weiter grün (außer der bewusst
+entschärften Stemmbrett-Karte).
+
 ## 7. Veröffentlichung ✅ *(v1.0 live seit 12.7.2026)*
 
 1. **PWA:** ✅ Web-App-Manifest (`manifest.json`, Icons aus dem Vereinswappen als PNG generiert),

@@ -365,12 +365,12 @@ const PRESETS = {
   'gigS':{rig:'skull',  DA:160, IH:88,   Lbig:289, Lmac:298, a:15},
   'gigR':{rig:'riemen', DA:84,  IH:114,  Lbig:375, Lmac:384, a:17},
   // WM 2017 Rigging Survey (FISA, Sarasota) — Mediane je Klasse; siehe ANALYSE_WM2017.md
-  'wmM1x':{rig:'skull',  DA:160,   IH:88.5, Lbig:288.5, Lmac:298, a:16, fa:46.5, single:true},
-  'wmW1x':{rig:'skull',  DA:160,   IH:88,   Lbig:286.5, Lmac:296, a:16, fa:46.5, single:true},
-  'wmM2x':{rig:'skull',  DA:159,   IH:88.5, Lbig:289,   Lmac:299, a:16, fa:46.5},
-  'wmW2x':{rig:'skull',  DA:159.5, IH:87.5, Lbig:287.5, Lmac:297, a:16, fa:46.5},
-  'wmM4x':{rig:'skull',  DA:159,   IH:88,   Lbig:289.5, Lmac:299, a:16, fa:46.5},
-  'wmW4x':{rig:'skull',  DA:159,   IH:88,   Lbig:288,   Lmac:298, a:16, fa:46.5},
+  'wmM1x':{rig:'skull',  DA:160,   IH:88.5, Lbig:288.5, Lmac:298, a:16, fa:32.5, single:true},
+  'wmW1x':{rig:'skull',  DA:160,   IH:88,   Lbig:286.5, Lmac:296, a:16, fa:32.5, single:true},
+  'wmM2x':{rig:'skull',  DA:159,   IH:88.5, Lbig:289,   Lmac:299, a:16, fa:32.5},
+  'wmW2x':{rig:'skull',  DA:159.5, IH:87.5, Lbig:287.5, Lmac:297, a:16, fa:32.5},
+  'wmM4x':{rig:'skull',  DA:159,   IH:88,   Lbig:289.5, Lmac:299, a:16, fa:32.5},
+  'wmW4x':{rig:'skull',  DA:159,   IH:88,   Lbig:288,   Lmac:298, a:16, fa:32.5},
   'wmM2-':{rig:'riemen', DA:86,    IH:116,  Lbig:375.5, Lmac:384, a:17},
   'wmW2-':{rig:'riemen', DA:86.5,  IH:116,  Lbig:373,   Lmac:382, a:17},
   'wmM4-':{rig:'riemen', DA:85,    IH:115,  Lbig:376,   Lmac:385, a:17},
@@ -380,13 +380,16 @@ const PRESETS = {
 };
 PRESETS['1x'].single=true;
 const PHI = { skull:{A:66,R:44}, riemen:{A:54,R:36} };
+// Vorlage-Schablone am Einsatz (fix, unabhängig von Fa/Rigg-Ziel) — EIN Wert, überall referenziert,
+// sonst rechnen naturalCatchReach() und solveBody() mit unterschiedlichen Körperhaltungen (Rücken-Bug).
+const CATCH_LEAN_DEG = 16;
 
 /* Ruderer-/Platz-Profil: Körpermaße UND das Rigg seines Platzes im Boot.
    Die Regler in der Seitenleiste wirken immer auf den gewählten Platz —
    Handbuch 4.1: Plätze dürfen abweichen (kürzere Ruder, kleinerer DA/IH …). */
 function mkRower(name,o={}){ return Object.assign({
   name, legLen:90, torsoLen:95, wingspan:188, SB:40, weight:80,
-  stemmX:48,                                    // Fa (Skull-Kalibrierung: Knie ≈ 165°)
+  stemmX:32.5,                                  // Fa: auf DRV-Ziel-Auslagewinkel kalibriert (Skull 66°)
   DA:159, IH:88, L:288, d:2, handGap:18,        // Hebel des Platzes
   a:15, anlage:4, aussen:0, dBB:0.5,            // Dollenhöhe/-neigung; Δ BB−StB (Skull)
   stemmW:42, rollL:75, rueh:5,                  // Stemmbrett/Rollbahn (42° = WM-2017-Median)
@@ -430,7 +433,7 @@ const CTLS = [
   {k:'rollL',  lab:'Rollbahnlänge', unit:'cm', min:68, max:80, step:.5},
   {k:'rueh',   lab:'Rollbahn-Überstand h. Dollenanlage', unit:'cm', min:-5, max:12, step:.5},
   {hdr:'Schlagbogen & Boot · gemeinsam'},
-  {k:'phiA', lab:'Auslagewinkel (z. Orthog.)', unit:'°', min:40, max:85, step:.5, hint:{both:'Handbuch 4.1: gleiche Ruderwinkel für alle'}},
+  {k:'phiA', lab:'Auslagewinkel Rigg-Ziel', unit:'°', min:40, max:85, step:.5, hint:{both:'Vergleichswert für die Ampel — den tatsächlichen Winkel bestimmt Fa (Stemmbrett längs)'}},
   {k:'phiR', lab:'Rücklagewinkel', unit:'°', min:20, max:60, step:.5},
   {k:'t',    lab:'Durchzug', unit:'%', min:0, max:100, step:1},
   {k:'c',    lab:'Rollsitz über Wasserlinie', unit:'cm', min:5, max:10, step:.5},
@@ -487,7 +490,7 @@ function applyPreset(){
   const p=PRESETS[$('preset').value];
   state.rig=p.rig;
   state.phiA=PHI[p.rig].A; state.phiR=PHI[p.rig].R;
-  const fa0 = p.fa ?? (p.rig==='skull' ? 48 : 38);   // Fa-Startwert (auf Knie ≈ 165° kalibriert); per Slider fein
+  const fa0 = p.fa ?? (p.rig==='skull' ? 32.5 : 50);  // Fa-Startwert: trifft den DRV-Ziel-Auslagewinkel; per Slider fein
   // Preset = Boots-Grundeinstellung → auf BEIDE Plätze; danach pro Platz frei abweichen (Handbuch 4.1)
   for(const seat of ['s1','s2']){
     const r=state.crew[seat];
@@ -661,8 +664,8 @@ function solveBody(dv, tPct, rec, r, phiAeff){
   // Fahrpläne (nominell)
   const knee0=lerp(rad(58), rad(172), smooth(t/0.97));
   const lam0 = rec
-    ? rad(lerp(32,-23, smooth((t-0.35)/0.65)))
-    : rad(lerp(32,-23, smooth((t-0.18)/0.72)));
+    ? rad(lerp(CATCH_LEAN_DEG,-23, smooth((t-0.35)/0.65)))
+    : rad(lerp(CATCH_LEAN_DEG,-23, smooth((t-0.18)/0.72)));
   const legD=a=>Math.sqrt(seg.OS**2+seg.US**2-2*seg.OS*seg.US*Math.cos(a));
   const hipOf=a=>foot.x-Math.sqrt(Math.max(1,legD(a)**2-dyLeg*dyLeg));
   const hip0x=hipOf(knee0);
@@ -675,18 +678,15 @@ function solveBody(dv, tPct, rec, r, phiAeff){
   const armLen=Math.sqrt(Math.max((armLen3*0.55)**2, armLen3*armLen3-dzArm*dzArm));
   // Oberkörper-Flexion (BWS + Schulterblatt-Vorschub) wächst mit der Vorlage:
   // Schultergelenk wandert nach vorn-unten — sonst hängen die Arme zu steil (Abb. 4).
-  const flexOf=l=>seg.T*0.42*smooth(l/rad(32));   // Flexion skaliert mit Rumpflänge (langer Rumpf → runderer Rücken)
+  const flexOf=l=>seg.T*0.42*smooth(l/rad(CATCH_LEAN_DEG));   // Flexion skaliert mit Rumpflänge (langer Rumpf → runderer Rücken)
   // Nominale Handposition bei gestreckten Armen
   const shOf=(hx,l)=>{const fx=flexOf(l);
     return {x:hx+seg.T*Math.sin(l)+0.35*fx, y:hipY+seg.T*Math.cos(l)-0.9*fx};};
   const armH=sy=>{const q=armLen*armLen-(sy-hand.y)**2; return q<=4?null:Math.sqrt(q);};
-  const sh0=shOf(hip0x,lam0), aH0=armH(sh0.y);
-  const hand0x= aH0===null ? hand.x : sh0.x+aH0;
-  // Residuum: über die Beine erst NACH der Auslage verteilen — in der Auslage
-  // bleiben die Knie beim Kompressions-Template (58°), der Rumpf gleicht aus.
-  const legShare=0.6*smooth(t/0.25);
-  const hipMin=hipOf(rad(172)), hipMax=hipOf(rad(45));
-  const hipX=clamp(hip0x+legShare*(hand.x-hand0x), hipMin, hipMax);
+  // Hüfte folgt NUR dem Bein-Fahrplan (glatt von 58°→172° über t) — Sequenz Beine→Rücken→Arme:
+  // Rumpf und Arme gleichen die Griffposition aus, nicht die Beine (verhindert Ruckeln durch
+  // eine Restkorrektur, die gegen die Hüft-Grenze läuft, sobald Fa den Schlagbogen verschiebt).
+  const hipX=hip0x;
   const D=Math.hypot(foot.x-hipX, dyLeg);
   const knee=Math.acos(clamp((seg.OS**2+seg.US**2-D*D)/(2*seg.OS*seg.US),-1,1));
   const hip={x:hipX,y:hipY};
@@ -698,9 +698,14 @@ function solveBody(dv, tPct, rec, r, phiAeff){
   if(fhi!==null && fhi<0){ lam=hi; overreach=true; }          // kommt nicht ran
   else{
     // λ*: Torso-Winkel, bei dem gestreckte Arme den Griff exakt erreichen.
-    // Hand näher als jede Streckung (flo>0) → synthetisch weit unter dem Fahrplan ansetzen.
+    // Hand näher als jede Streckung (flo>0): KEIN Sprung auf einen willkürlichen Wert —
+    // lineare Extrapolation über die lokale Steigung bei lo, stetig zum Bisektions-Ast (flo→0).
     let lamStar;
-    if(flo!==null && flo>0){ lamStar=lo-rad(30); }
+    if(flo!==null && flo>0){
+      const eps=rad(0.5), fEps=F(lo+eps);
+      const slope = (fEps!==null) ? (fEps-flo)/eps : 1;   // dF/dλ bei lo (>0 erwartet)
+      lamStar = lo - flo/Math.max(slope,0.05);             // stetige Fortsetzung unter lo
+    }
     else{
       for(let i=0;i<28;i++){ const mid=(lo+hi)/2, fm=F(mid);
         if(fm===null||fm>0) hi=mid; else lo=mid; }
@@ -720,7 +725,7 @@ function solveBody(dv, tPct, rec, r, phiAeff){
   // Knie-Position (Scheitel oben); Kopf sitzt auf dem gerundeten Wirbelsäulen-Ende
   const kneeP=ik2(hip,foot,seg.OS,seg.US,false).J;
   const c7={x:hipX+seg.T*Math.sin(lam), y:hipY+seg.T*Math.cos(lam)};
-  const tilt=lam+rad(22)*smooth(lam/rad(32));
+  const tilt=lam+rad(22)*smooth(lam/rad(CATCH_LEAN_DEG));
   const headR=seg.HEAD*0.42;   // Kopf-Radius (halbe Kopfbreite), nicht volle Kopfhöhe
   const head={x:sh.x+(seg.NECK+headR)*Math.sin(tilt), y:sh.y+(seg.NECK+headR)*Math.cos(tilt), r:headR};
   const armAng=deg(Math.atan2(sh.y-hand.y, hand.x-sh.x));
@@ -790,14 +795,43 @@ function bodyRefs(dv, r){
   const rollAt=b=> span>1 ? clamp((b0.hip.x-b.hip.x)/span*100,0,100) : 0;
   return {b0,b1,b90,t90,rollAt};
 }
-// Maximal erreichbarer Auslagewinkel für dieses Rigg+Körper (Fa/Beinlänge/Armlänge begrenzen die Reichweite).
-// Bisektion auf dem Overreach-Flag der Auslage-Pose (monoton: größerer Winkel = weniger erreichbar).
-function maxReachableAuslage(dv, r){
-  let lo=30, hi=88;
-  if(!solveBody(dv,0,false,r,hi).overreach) return hi;
-  for(let i=0;i<16;i++){ const mid=(lo+hi)/2;
-    if(solveBody(dv,0,false,r,mid).overreach) hi=mid; else lo=mid; }
-  return lo;
+// Tatsächlich erreichter Auslagewinkel: die Körperhaltung am Einsatz ist eine FESTE Schablone
+// (Kniewinkel 58°, Vorlage 32° — unabhängig von Fa und vom Ziel-Regler). Fa verschiebt nur die
+// Hüfte, die Hüfte die Schulter, die gestreckte Schulter die Hand — DAS ergibt den realen Winkel.
+// Kein Rücken-Verbiegen mehr, um einen Fa-unabhängigen Handziel-Punkt zu treffen (das war der Bug:
+// vorher war hand.x = IH·sin(phiA) komplett Fa-unabhängig, und nur der Rücken wurde nachgeführt).
+function naturalCatchReach(dv, r){
+  const s=state, seg=SEG(r);
+  const foot={x:r.stemmX, y:s.c-18};
+  const hipY=s.c+4, dyLeg=hipY-foot.y;
+  const legD=a=>Math.sqrt(seg.OS**2+seg.US**2-2*seg.OS*seg.US*Math.cos(a));
+  const hip0x=foot.x-Math.sqrt(Math.max(1,legD(rad(58))**2-dyLeg*dyLeg));   // Fa → Hüfte
+  const lam0=rad(CATCH_LEAN_DEG);                                           // feste Vorlage-Schablone
+  const flexOf=l=>seg.T*0.42*smooth(l/rad(CATCH_LEAN_DEG));
+  const fx=flexOf(lam0);
+  const sh0={x:hip0x+seg.T*Math.sin(lam0)+0.35*fx, y:hipY+seg.T*Math.cos(lam0)-0.9*fx};  // Hüfte → Schulter
+  const armLen3=seg.OA+seg.UA, DAr=dv.DAr;
+  const pinY=s.c+r.a, wl=s.kg*0.1, lift=bladeLiftF(0,false);
+  const sinB=clamp((pinY-wl-lift)/dv.outb,-0.5,1), handY=pinY+dv.inb*sinB;
+  // Gesucht: θ, bei dem "vom Rigg benötigtes" hand.x = "von Schulter+Arm erreichbares" hand.x.
+  // Der seitliche Versatz (dzArm) hängt selbst von θ ab und ist NICHT monoton (V-förmig, sobald die
+  // Griffseite die Schulterbreite kreuzt) — eine Fixpunkt-Iteration schwingt hier auf; robust ist ein
+  // feiner Scan über den ganzen Winkelbereich statt einer Rückkopplungsschleife.
+  const achieved=thetaDeg=>{
+    const th=rad(thetaDeg);
+    const zW=DAr-dv.inb*Math.cos(th);
+    const dzArm=dv.skull? Math.abs(zW-r.SB/2) : Math.abs(zW+r.SB/2*0.95);
+    const armLen=Math.sqrt(Math.max((armLen3*0.55)**2, armLen3*armLen3-dzArm*dzArm));
+    const q=armLen*armLen-(sh0.y-handY)**2;
+    return sh0.x+(q<=4?0:Math.sqrt(q));
+  };
+  const required=thetaDeg=>dv.inb*Math.sin(rad(thetaDeg));
+  let best=20, bestAbs=Infinity;
+  for(let td=20; td<=88; td+=0.5){
+    const g=Math.abs(required(td)-achieved(td));
+    if(g<bestAbs){ bestAbs=g; best=td; }
+  }
+  return best;
 }
 
 /* ---------------- Statuskarten & Chips ---------------- */
@@ -824,15 +858,16 @@ function renderStatus(dv,refs,r){
   }
   const cards=[
     {n:'Übergriff', v:fmt(dv.U)+' cm', st:band(dv.U,uLo,uHi,2), rng:`${uLo} – ${uHi} cm`},
-    (()=>{ const capped=dv.phiA<s.phiA-0.05;
-      return {n:'Auslagewinkel', v:fmt(dv.phiA)+'°'+(capped?' ⚠':''),
+    (()=>{ const dOff=dv.phiA-s.phiA, differs=Math.abs(dOff)>1.5;
+      return {n:'Auslagewinkel', v:fmt(dv.phiA)+'°'+(differs?' ⚠':''),
         st:dv.skull?band(dv.phiA,65,75,5):band(dv.phiA,50,60,5),
-        rng:(dv.skull?'65 – 75°':'~54° (Riemen)')+(capped?` · Fa begrenzt auf ${fmt(dv.phiA)}° (Ziel ${fmt(s.phiA)}°)`:'')}; })(),
+        rng:(dv.skull?'65 – 75°':'~54° (Riemen)')+(differs?` · aus Fa+Körper erreicht (Rigg-Ziel ${fmt(s.phiA)}°, ${dOff>0?'+':''}${fmt(dOff,1)}°)`:' · aus Fa+Körper erreicht')}; })(),
     {n:'Schlagweite', v:fmt(dv.SW)+'°', st:band(dv.SW,dv.skull?105:85,dv.skull?115:95,5), rng:dv.skull?'110° (Skull)':'90° (Riemen)'},
     dolleCard,
     {n:'Dollen-Neigung', v:fmt(r.anlage)+'°', st:band(r.anlage,3,5,2), rng:'Norm 4° (±4°)'},
     {n:'Innenhebel', v:fmt(r.IH)+' cm', st:Math.abs(dIH)<=1?'ok':Math.abs(dIH)<=2?'warn':'bad', rng:(dv.skull?'DA/2 + 8 cm':'DA + 30 cm')+` = ${fmt(dv.IHsoll)}`},
-    {n:'Stemmbrett', v:fmt(refs.b90.knee,0)+'°', st:band(refs.b90.knee,160,170,6), rng:'Knie bei 90° ≈ 165°'},
+    {n:'Stemmbrett', v:fmt(refs.b90.knee,0)+'°', st:band(refs.b90.knee,150,172,35),
+      rng:'Handbuch-Ideal 165° — konkurriert mit der Auslage um Fa; hier informativ, nicht hart geprüft'},
   ];
   $('cards').innerHTML=cards.map(c=>
     `<div class="scard ${c.st}"><div class="ico">${ICONS[c.st]}${c.n}</div>
@@ -913,9 +948,11 @@ function renderTop(dv,seats,primary){
   const DAr=dv.DAr;                      // Referenz-Platz (Bögen, Keil, Maße)
   const K=0.55;                          // Außenhebel-Verkürzung (nur Darstellung)
   const rOut=dv.outb*K, rIn=dv.inb;
-  // Ausschnitt über die größten Hebel aller Plätze
+  // Ausschnitt über die größten Hebel & tatsächlich erreichten Winkel aller Plätze
+  // (die Auslage kommt jetzt aus Fa+Körper und kann das Rigg-Ziel über- oder unterschreiten)
   const DArMax=Math.max(...seats.map(x=>x.dv.DAr)), outMax=Math.max(...seats.map(x=>x.dv.outb))*K;
-  const latMax=DArMax+outMax*Math.max(Math.cos(rad(s.phiA)),Math.cos(rad(s.phiR)))+34;
+  const phiAmax=Math.max(s.phiA,...seats.map(x=>x.dv.phiA));
+  const latMax=DArMax+outMax*Math.max(Math.cos(rad(phiAmax)),Math.cos(rad(s.phiR)))+34;
   const lat=Math.max(latMax,DArMax+rIn*0.4+60,150);
   const sc=Math.min((W-40)/560, 250/lat);
   const H=2*lat*sc+46;
@@ -942,7 +979,7 @@ function renderTop(dv,seats,primary){
   // Ampel-Zonen für den Auslagewinkel (identische Schwellen wie die Statuskarte oben),
   // je Sitz an dessen eigener Dolle gespiegelt — macht die Winkel zwischen den Plätzen vergleichbar.
   const angBand = dv.skull ? {lo:65,hi:75,pad:5} : {lo:50,hi:60,pad:5};
-  const zoneMax = Math.max(angBand.hi+angBand.pad+6, s.phiA+6);
+  const zoneMax = Math.max(angBand.hi+angBand.pad+6, phiAmax+6);
   const zones = [
     [0, Math.max(0,angBand.lo-angBand.pad), 'rgba(248,81,73,.09)','rgba(248,81,73,.3)'],
     [Math.max(0,angBand.lo-angBand.pad), angBand.lo, 'rgba(240,169,46,.12)','rgba(240,169,46,.4)'],
@@ -979,8 +1016,8 @@ function renderTop(dv,seats,primary){
         el(svg,'line',{x1:X(ox),y1:Y(pv),x2:X(-rk*Math.sin(a)+ox),y2:Y(pv+sd*rk*Math.cos(a)),stroke:'var(--fg-mut)','stroke-width':.8,'stroke-dasharray':'2 4'}); }
     }
     const lblSide=seatSides[0], pvLbl=lblSide*sDAr;
-    const cappedTxt=seat.capped?` (Fa-Limit, Ziel ${fmt(s.phiA)}°)`:'';
-    const lblText=(seats.length>1 ? `${seat.name}: ${fmt(phiASeat)}°` : `Auslagewinkel ${fmt(phiASeat)}°`)+cappedTxt;
+    const diffTxt=seat.capped?` (Ziel ${fmt(s.phiA)}°)`:'';
+    const lblText=(seats.length>1 ? `${seat.name}: ${fmt(phiASeat)}°` : `Auslagewinkel ${fmt(phiASeat)}°`)+diffTxt;
     txt(svg,X(-rk*0.7*Math.sin(rad(phiASeat))+ox)-8,Y(pvLbl+lblSide*rk*0.75*Math.cos(rad(phiASeat)))-6,
       lblText,{fill:seat.capped?'var(--warn)':'var(--ok)',class:'cap','text-anchor':'end'});
     txt(svg,X(ox)+8,Y(pvLbl)-8,'Dolle',{class:'cap'});
@@ -1133,7 +1170,7 @@ function renderSide(dv,seats,primary,refs){
   // Ausschnitt über alle Sitze
   let x0=-115, x1=140, ytop=0;
   for(const seat of seats){ const b=seat.b, ox=seat.ox;
-    x0=Math.min(x0, ox-seat.dv.outb*Math.sin(rad(s.phiA))-14);
+    x0=Math.min(x0, ox-seat.dv.outb*Math.sin(rad(Math.max(s.phiA,seat.dv.phiA)))-14);
     x1=Math.max(x1, ox+b.foot.x+70, ox+seat.dv.outb*Math.sin(rad(s.phiR))+14);
     ytop=Math.max(ytop, b.head.y, b.pinY);
   }
@@ -1455,15 +1492,16 @@ function buildSeats(){
     ? [{r:state.crew.s1, ox:0, ref:true, side:ss, name:state.crew.s1.name}]
     : [{r:state.crew.s1, ox:0, ref:true, side:ss, name:state.crew.s1.name},
        {r:state.crew.s2, ox:-SEATGAP, ref:false, side:-ss, name:state.crew.s2.name}]; // Riemen: Gegenseite
-  // jeder Platz rechnet mit SEINEM Rigg (dv pro Ruderer) UND seiner eigenen, durch
-  // Fa/Körpermaße begrenzten Auslage — Stemmbrett verschieben verändert sichtbar die Auslage.
+  // jeder Platz rechnet mit SEINEM Rigg (dv pro Ruderer) UND seinem eigenen, durch Fa+Körpermaße
+  // tatsächlich erreichten Auslagewinkel — Stemmbrett Richtung Heck schiebt die Hüfte sternwärts,
+  // die Hand wandert mit, der Winkel wächst; Richtung Bug entsprechend umgekehrt. Der phiA-Regler
+  // bleibt als RIGG-ZIEL erhalten (Vergleichswert/Ampel), bestimmt aber nicht mehr die Körperhaltung.
   return defs.map(d=>{
     const dvRaw=derived(d.r);                          // Hebelgeometrie, phiA-unabhängig
-    const reachMax=maxReachableAuslage(dvRaw,d.r);
-    const effPhiA=Math.min(state.phiA,reachMax);
+    const effPhiA=naturalCatchReach(dvRaw,d.r);
     const dv=derived(d.r,effPhiA);
     const b=solveBody(dv,state.t,state.recovery,d.r,effPhiA); b.arms=solveArms(dv,b,d.r);
-    return {...d,dv,b,reachMax,capped:reachMax<state.phiA-0.05}; });
+    return {...d,dv,b,capped:Math.abs(effPhiA-state.phiA)>1.5}; });
 }
 function render(){
   const seats=buildSeats();
@@ -1522,8 +1560,8 @@ $('bLoad').addEventListener('click',()=>{
   buildControls(); updateRig(); render();
 });
 $('bExport').addEventListener('click',()=>{
-  const r=activeRower(), dvRaw=derived(r), reachMax=maxReachableAuslage(dvRaw,r),
-        dv=derived(r,Math.min(state.phiA,reachMax)), refs=bodyRefs(dv,r);
+  const r=activeRower(), dvRaw=derived(r), effPhiA=naturalCatchReach(dvRaw,r),
+        dv=derived(r,effPhiA), refs=bodyRefs(dv,r);
   const data={...state, abgeleitet:{uebergriff_cm:+dv.U.toFixed(1), aussenhebel_cm:+dv.AH.toFixed(1),
     hebelverhaeltnis:+(dv.AH/r.IH).toFixed(2), schlagweite_grad:dv.SW,
     dollenhoehe_ueber_wasser_cm:+dv.dWL.toFixed(1),
