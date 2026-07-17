@@ -247,6 +247,11 @@ entschärften Stemmbrett-Karte).
   Der Rudertrimm-Visualisierer geht denselben Weg — so einfach installierbar und vereinstauglich,
   dass er in vielen Rudervereinen neben eFa läuft. Der Weg dorthin bleibt die Single-File-PWA
   (Abschnitt 8), Weitergabe per Link/QR; eFa-Import macht die App ohne Tipparbeit sofort nutzbar.
+- **Doku & FAQ nach eFa-Vorbild:** eFa lebt auch von seiner Nutzer-Dokumentation (DokuWiki, FAQ,
+  Support-Forum). Für die Verbreitung braucht die Trimm-App neben diesem Lastenheft
+  (Entwickler-Sicht) eine **Nutzer-Doku**: Erste-Schritte-Anleitung, Mess-Anleitung (Körper- und
+  Rigg-Maße richtig nehmen) und ein FAQ — z. B. als GitHub-Wiki/README oder Hilfe-Seite in der
+  PWA, damit fremde Vereine ohne Rückfragen starten können.
 
 ## 10. Offene Fragen ❓
 
