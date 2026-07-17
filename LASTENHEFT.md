@@ -271,3 +271,7 @@ entschärften Stemmbrett-Karte).
 11. **Abweichende Ruder für Ruderer 2?** Handbuch 4.1: bei großen Unterschieden kürzere Ruder/kleinerer Hebel für den Schwächeren. Zunächst identische Boot-Rigg wie Schlagmann, oder pro Ruderer Ruderlänge/IH variierbar?
 12. **Riemen-Zweier-Anordnung** in der Draufsicht: Schlag Backbord, Bug Steuerbord (o. umgekehrt) — Standard festlegen/umschaltbar?
 13. Nice-to-have: Trimmprotokoll (Tabelle 3 des Handbuchs) als ausfüllbares Formular mit Export.
+14. **Nutzer-Doku & FAQ** (beschlossen 17.7.2026, siehe Abschnitt 9): Hilfe-Seite direkt in der
+    PWA — Erste Schritte, **Mess-Anleitung mit Skizzen** (Beinlänge, Rumpflänge, Spannweite,
+    Schulterbreite; DA, IH, Dollenhöhe), FAQ. Wichtigstes Stück ist die Mess-Anleitung: falsche
+    Eingabemaße entwerten jede Auswertung. Umsetzung vor einem Verbreitungs-Push an fremde Vereine.
