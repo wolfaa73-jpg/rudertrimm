@@ -1,6 +1,6 @@
 # Lastenheft — Ruderpositions-Visualisierer
 
-**Stand:** 12. Juli 2026 · **Datei:** `index.html` (Single-File-App, kein Build, keine Abhängigkeiten)
+**Stand:** 17. Juli 2026 · **Datei:** `index.html` (Single-File-App, kein Build, keine Abhängigkeiten)
 **Fachliche Quelle:** DRV-Trimmhandbuch, Kap. 5 „Das Trimmen der Boote" (Ellerbrake/Filter · Nolte · v. Lingelsheim · Piesik)
 
 Legende: ✅ umgesetzt · 🔧 Umbau nötig · 🆕 neu angefordert · ❓ offen
@@ -232,7 +232,23 @@ entschärften Stemmbrett-Karte).
 - Keine Mehrsprachigkeit vorerst (deutsch).
 - Keine Simulation von Bootsdynamik/Hydrodynamik — Geometrie- und Technik-Visualisierung.
 
-## 9. Offene Fragen ❓
+## 9. Zielumgebung & Vision 🆕 *(17.7.2026)*
+
+- **eFa als wahrscheinliches Ziel:** Im Ruderhaus läuft **eFa** (elektronisches Fahrtenbuch,
+  efa.nmichael.de) auf dem **Raspberry Pi 4** — dort liegen die Vereins-Stammdaten (Personen, Boote).
+  Ziel: Personen- und Bootslisten per eFa-CSV-Export (Admin-Modus; Semikolon, UTF-8; Personen mit
+  `FirstName`/`LastName`/`NameAffix`, Boote mit `Name`/`TypeSeats`/`TypeRigging`/`TypeCoxing`) in die
+  Trimm-App importieren. **Reiner Lese-Import, kein Writeback** ins Fahrtenbuch. Vorlage: der
+  eFa-Adapter aus V2.5 (`v2.5/js/efa-csv.mjs`), sinnvoll erweitert um die Bootstyp-Felder zur
+  Vorbelegung der Bootsklasse (Skull/Riemen, Plätze, m./o. Stm.).
+- **Denkbare Ausbaustufe:** Trimm-App auf demselben Pi 4 im Bootshaus-LAN mitservieren;
+  `efaCLI` kann per Cron aktuelle CSV-Exporte automatisch bereitstellen.
+- **Vision — 500 Kopien:** eFa wird von über 500 Vereinen in 13 Ländern genutzt. Langfristziel:
+  Der Rudertrimm-Visualisierer geht denselben Weg — so einfach installierbar und vereinstauglich,
+  dass er in vielen Rudervereinen neben eFa läuft. Der Weg dorthin bleibt die Single-File-PWA
+  (Abschnitt 8), Weitergabe per Link/QR; eFa-Import macht die App ohne Tipparbeit sofort nutzbar.
+
+## 10. Offene Fragen ❓
 
 **Erledigt:**
 1. ~~„Plattform"~~ → Blattfläche in den Ansichten, kein Detail-Inset (5.4).
